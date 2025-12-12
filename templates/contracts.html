@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contracts | Rent Home</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+  #errorBox { display:none; background:#ffe6e6; color:#c0392b; padding:10px; margin-bottom:10px; border-radius:5px; position:relative; }
+  .status-available { color: green; font-weight: bold; }
+  .status-unavailable { color: red; font-weight: bold; }
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="logo">RH</div>
+  <h2>Rent Home</h2>
+  <nav>
+    <a href="/dashboard">Dashboard</a>
+    <a href="/properties">Properties</a>
+    <a href="/tenants">Tenants</a>
+    <a class="active" href="/contracts">Contracts</a>
+    <a href="/payments">Payments</a>
+    <a href="/maintenance">Maintenance</a>
+    <a href="/reports">Reports</a>
+    <a href="/users">Users</a>
+  </nav>
+  <a href="/login" class="logout-btn">Logout</a>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <input type="text" id="searchContracts" class="search" placeholder="Search contracts...">
+    <div class="user">Admin</div>
+  </header>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Contracts</h1>
+      <button id="addContractBtn" class="add-tenant-btn">Add Contract</button>
+    </div>
+
+    <div class="table-section">
+      <h2>All Contracts</h2>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tenant</th>
+            <th>Property</th>
+            <th>Room</th>
+
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Deposit</th>
+            <th>Rent</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="contractTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CONTRACT POPUP -->
+  <div id="contractPopup" class="popup-overlay">
+    <form class="popup-content" id="contractForm">
+      <h2 id="popupTitle">Add Contract</h2>
+
+      <div id="errorBox">
+        <span id="errMsg"></span>
+        <button type="button" onclick="document.getElementById('errorBox').style.display='none'"
+                style="position:absolute;top:5px;right:8px;background:none;border:none;font-size:18px;color:#c0392b;cursor:pointer;">&times;</button>
+      </div>
+
+      <label>Tenant</label>
+      <select id="tenant" required></select>
+
+      <label>Property</label>
+      <select id="property" required>
+        {% for p in properties %}
+          <option value="{{ p.property_id }}">{{ p.property_name }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Start Date</label>
+      <input type="date" id="startDate" required>
+
+      <label>End Date</label>
+      <input type="date" id="endDate" required>
+
+      <label>Room</label>
+      <select id="room" required></select>
+
+      <label>Deposit Amount</label>
+      <input type="number" id="deposit" step="0.01" required>
+
+      <label>Monthly Rent</label>
+      <input type="number" id="rent" step="0.01" required readonly>
+
+      <label>Status</label>
+      <select id="status" required>
+        <option value="Available">Available</option>
+        <option value="Unavailable">Unavailable</option>
+      </select>
+
+      <div class="popup-buttons">
+        <button type="submit" class="btn-add">Save</button>
+        <button type="button" id="closePopup" class="btn-delete">Cancel</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let editingId = null;
+    let allContracts = [];
+    let roomsData = [];
+
+    const popup = document.getElementById('contractPopup');
+    const form = document.getElementById('contractForm');
+    const tenantSel = document.getElementById('tenant');
+    const propertySel = document.getElementById('property');
+    const roomSel = document.getElementById('room');
+    const startInp = document.getElementById('startDate');
+    const endInp = document.getElementById('endDate');
+    const depositInp = document.getElementById('deposit');
+    const rentInp = document.getElementById('rent');
+    const statusSel = document.getElementById('status');
+    const tableBody = document.getElementById('contractTableBody');
+    const errorBox = document.getElementById('errorBox');
+    const errMsg = document.getElementById('errMsg');
+    const addBtn = document.getElementById('addContractBtn');
+    const closeBtn = document.getElementById('closePopup');
+
+    function showError(msg) {
+        errMsg.textContent = msg;
+        errorBox.style.display = 'block';
+        errorBox.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function updateRent() {
+        const selected = roomSel.selectedOptions[0];
+        rentInp.value = selected ? selected.dataset.rent : '';
+    }
+
+    closeBtn.onclick = () => popup.style.display = 'none';
+
+    addBtn.onclick = async () => {
+        editingId = null;
+        form.reset();
+        const today = new Date();
+        startInp.value = today.toISOString().split('T')[0];
+        const nextMonth = new Date(today);
+        nextMonth.setMonth(today.getMonth() + 1);
+        endInp.value = nextMonth.toISOString().split('T')[0];
+        statusSel.value = 'Available';
+        await loadDropdowns();
+        popup.style.display = 'flex';
+    };
+
+    async function loadDropdowns() {
+        try {
+            const tenants = await (await fetch('/api/tenants')).json();
+            tenantSel.innerHTML = tenants.map(t => `<option value="${t.tenant_id}">${t.full_name}</option>`).join('');
+
+            const properties = await (await fetch('/api/properties')).json();
+            propertySel.innerHTML = properties.map(p => `<option value="${p.property_id}">${p.property_name}</option>`).join('');
+            if (!propertySel.value && properties.length) propertySel.value = properties[0].property_id;
+
+            roomsData = await (await fetch('/api/rooms')).json();
+            allContracts = await (await fetch('/api/contracts')).then(r => r.json());
+            await loadRooms();
+        } catch (err) {
+            console.error(err);
+            showError("Failed to load dropdowns.");
+        }
+    }
+
+    async function loadRooms() {
+        const propertyId = propertySel.value;
+        const start = startInp.value;
+        const end = endInp.value;
+
+        const filtered = roomsData.filter(r => String(r.property_id) === String(propertyId));
+
+        if (!filtered.length) {
+            roomSel.innerHTML = '<option disabled>No rooms available</option>';
+            roomSel.disabled = true;
+            rentInp.value = '';
+            return;
+        }
+
+        let unavailableIds = [];
+        if (start && end) {
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+
+            unavailableIds = allContracts
+                .filter(c => c.contract_id !== editingId && c.room_id)
+                .filter(c => !(endDate < new Date(c.start_date) || startDate > new Date(c.end_date)))
+                .map(c => String(c.room_id));
+        }
+
+        roomSel.innerHTML = filtered.map(r => {
+            const isUnavailable = unavailableIds.includes(String(r.room_id)) || r.status.toLowerCase() !== 'available';
+            return `<option value="${r.room_id}" data-rent="${r.rent_price}" ${isUnavailable ? "disabled" : ""}>
+                        ${r.room_number} ${isUnavailable ? "(Unavailable)" : ""}
+                    </option>`;
+        }).join('');
+
+        const firstAvailable = filtered.find(r => !unavailableIds.includes(String(r.room_id)) && r.status.toLowerCase() === 'available');
+        if (firstAvailable) {
+            roomSel.value = firstAvailable.room_id;
+            roomSel.disabled = false;
+        } else {
+            roomSel.value = '';
+            roomSel.disabled = true;
+        }
+
+        updateRent();
+    }
+
+    roomSel.onchange = updateRent;
+    propertySel.onchange = loadRooms;
+    startInp.onchange = loadRooms;
+    endInp.onchange = loadRooms;
+
+    async function loadContracts() {
+        try {
+            allContracts = await (await fetch('/api/contracts')).json();
+            tableBody.innerHTML = '';
+            allContracts.forEach(c => {
+                const statusClass = c.status.toLowerCase() === 'available' ? 'status-available' : 'status-unavailable';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${c.contract_id}</td>
+                    <td>${c.tenant}</td>
+                    <td>${c.property}</td>
+                    <td>${c.room_number}</td>
+                    <td>${c.start_date}</td>
+                    <td>${c.end_date}</td>
+                    <td>${c.deposit_amount}</td>
+                    <td>${c.monthly_rent}</td>
+                    <td class="${statusClass}">${c.status}</td>
+                    <td>
+                        <button class="btn-edit" onclick="editContract(${c.contract_id})">Edit</button>
+                        <button class="btn-delete" onclick="deleteContract(${c.contract_id})">Delete</button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        } catch (err) {
+            console.error(err);
+            showError("Failed to load contracts.");
+        }
+    }
+
+    form.onsubmit = async e => {
+        e.preventDefault();
+        if (!roomSel.value) {
+            showError("No room selected.");
+            return;
+        }
+        if (new Date(endInp.value) < new Date(startInp.value)) {
+            showError("End date must be after start date.");
+            return;
+        }
+
+        const data = {
+            tenant_id: tenantSel.value,
+            room_id: roomSel.value,
+            start_date: startInp.value,
+            end_date: endInp.value,
+            deposit_amount: depositInp.value,
+            monthly_rent: rentInp.value,
+            status: statusSel.value
+        };
+
+        const url = editingId ? `/api/contracts/${editingId}` : '/api/contracts';
+        const method = editingId ? "PUT" : "POST";
+
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || "Error saving contract");
+
+            popup.style.display = "none";
+            await loadContracts();
+            roomsData = await (await fetch('/api/rooms')).then(r => r.json());
+            await loadRooms();
+        } catch (err) {
+            console.error(err);
+            showError(err.message);
+        }
+    };
+
+    window.editContract = async id => {
+        editingId = id;
+        const contract = allContracts.find(c => c.contract_id === id);
+        if (!contract) return;
+
+        await loadDropdowns();
+        tenantSel.value = contract.tenant_id;
+        propertySel.value = contract.property_id;
+        startInp.value = contract.start_date;
+        endInp.value = contract.end_date;
+        depositInp.value = contract.deposit_amount;
+        rentInp.value = contract.monthly_rent;
+        statusSel.value = contract.status;
+
+        await loadRooms();
+        roomSel.value = contract.room_id;
+        updateRent();
+        popup.style.display = "flex";
+    };
+
+    window.deleteContract = async id => {
+        if (!confirm("Are you sure?")) return;
+        try {
+            const res = await fetch(`/api/contracts/${id}`, { method: "DELETE" });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || "Delete failed");
+
+            await loadContracts();
+            roomsData = await (await fetch('/api/rooms')).then(r => r.json());
+            await loadRooms();
+        } catch (err) {
+            console.error(err);
+            showError(err.message);
+        }
+    };
+
+    loadDropdowns();
+    loadContracts();
+});
+</script>
+</body>
+</html>

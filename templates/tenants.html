@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tenants | Rent Home</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar">
+    <div class="logo">RH</div>
+    <h2>Rent Home</h2>
+    <nav>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/properties">Properties</a>
+      <a class="active" href="/tenants">Tenants</a>
+      <a href="/contracts">Contracts</a>
+      <a href="/payments">Payments</a>
+      <a href="/maintenance">Maintenance</a>
+      <a href="/reports">Reports</a>
+      <a href="/users">Users</a>
+    </nav>
+    <a href="/login" class="logout-btn">Logout</a>
+  </aside>
+
+  <!-- ===== MAIN AREA ===== -->
+  <main class="main">
+    <header class="topbar">
+      <input type="text" class="search" placeholder="Search tenants..." />
+      <div class="user">Admin</div>
+    </header>
+
+    <div class="container">
+      <div class="page-header">
+        <h1>Tenants</h1>
+        <button id="addTenantBtn" class="add-tenant-btn">Add Tenant</button>
+      </div>
+
+      <div class="table-section">
+        <h2>All Tenants</h2>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Image</th>
+              <th>Phone</th>
+              <th>ID Card</th>
+              <th>Address</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tenantTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== TENANT POPUP FORM ===== -->
+    <div id="tenantPopup" class="popup-overlay">
+      <form class="popup-content" id="tenantForm" enctype="multipart/form-data">
+        <h2 id="popupTitle">Add Tenant</h2>
+
+        <label for="tenantName">Name</label>
+        <input type="text" id="tenantName" name="full_name" required>
+
+        <label for="tenantEmail">Email</label>
+        <input type="email" id="tenantEmail" name="email" required>
+
+        <label for="tenantImage">Image</label>
+        <input type="file" id="tenantImage" name="image" accept="image/*">
+        <img id="imagePreview" style="max-width:100px; display:none; margin-top:5px;" />
+
+        <label for="tenantPhone">Phone</label>
+        <input type="text" id="tenantPhone" name="phone" required>
+
+        <label for="tenantIdCard">ID Card</label>
+        <input type="text" id="tenantIdCard" name="id_card">
+
+        <label for="tenantAddress">Address</label>
+        <input type="text" id="tenantAddress" name="address">
+
+        <div class="popup-buttons">
+          <button type="submit" class="btn-add" id="saveTenantBtn">Save</button>
+          <button type="button" class="btn-delete" id="closeTenantPopup">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+  </main>
+
+<script>
+const addTenantBtn = document.getElementById('addTenantBtn');
+const tenantPopup = document.getElementById('tenantPopup');
+const closeTenantPopup = document.getElementById('closeTenantPopup');
+const tenantForm = document.getElementById('tenantForm');
+const tenantTableBody = document.getElementById('tenantTableBody');
+const popupTitle = document.getElementById('popupTitle');
+const tenantImage = document.getElementById('tenantImage');
+const imagePreview = document.getElementById('imagePreview');
+
+let editingTenantId = null;
+
+// -------------------------
+// IMAGE PREVIEW
+// -------------------------
+tenantImage.addEventListener('change', () => {
+    const file = tenantImage.files[0];
+    if(file) {
+        imagePreview.src = URL.createObjectURL(file);
+        imagePreview.style.display = 'block';
+    } else {
+        imagePreview.style.display = 'none';
+    }
+});
+
+// -------------------------
+// OPEN POPUP
+// -------------------------
+addTenantBtn.addEventListener('click', () => {
+    popupTitle.textContent = "Add Tenant";
+    tenantForm.reset();
+    imagePreview.style.display = 'none';
+    tenantPopup.style.display = 'flex';
+    editingTenantId = null;
+});
+
+// -------------------------
+// CLOSE POPUP
+// -------------------------
+closeTenantPopup.addEventListener('click', () => tenantPopup.style.display = 'none');
+tenantPopup.addEventListener('click', e => {
+    if(e.target === tenantPopup) tenantPopup.style.display = 'none';
+});
+
+// -------------------------
+// LOAD TENANTS
+// -------------------------
+async function loadTenants() {
+    try {
+        const res = await fetch('/api/tenants');
+        const tenants = await res.json();
+        tenantTableBody.innerHTML = '';
+
+        tenants.forEach(t => {
+            const row = document.createElement('tr');
+            row.dataset.id = t.tenant_id;
+            row.innerHTML = `
+                <td>${t.tenant_id}</td>
+                <td>${t.full_name}</td>
+                <td>${t.email}</td>
+                <td>${t.image ? `<img src="${t.image}" style="max-width:50px;">` : ''}</td>
+                <td>${t.phone || ''}</td>
+                <td>${t.id_card || ''}</td>
+                <td>${t.address || ''}</td>
+                <td>
+                    <button class="btn-edit">Edit</button>
+                    <button class="btn-delete">Delete</button>
+                </td>
+            `;
+            attachRowEvents(row);
+            tenantTableBody.appendChild(row);
+        });
+    } catch(err) {
+        console.error(err);
+    }
+}
+
+// -------------------------
+// ATTACH ROW EVENTS
+// -------------------------
+function attachRowEvents(row){
+    const editBtn = row.querySelector('.btn-edit');
+    const deleteBtn = row.querySelector('.btn-delete');
+
+    editBtn.addEventListener('click', async () => {
+        const tenantId = row.dataset.id;
+        try {
+            const res = await fetch(`/api/tenants/${tenantId}`);
+            const tenant = await res.json();
+
+            popupTitle.textContent = "Edit Tenant";
+            tenantForm.reset();
+            tenantPopup.style.display = 'flex';
+
+            document.getElementById('tenantName').value = tenant.full_name;
+            document.getElementById('tenantEmail').value = tenant.email;
+            document.getElementById('tenantPhone').value = tenant.phone || '';
+            document.getElementById('tenantIdCard').value = tenant.id_card || '';
+            document.getElementById('tenantAddress').value = tenant.address || '';
+            if(tenant.image){
+                imagePreview.src = tenant.image;
+                imagePreview.style.display = 'block';
+            } else {
+                imagePreview.style.display = 'none';
+            }
+
+            editingTenantId = tenantId;
+        } catch(err) {
+            console.error(err);
+        }
+    });
+
+    deleteBtn.addEventListener('click', async () => {
+        if(!confirm("Are you sure you want to delete this tenant?")) return;
+        try {
+            const res = await fetch('/api/tenants/delete', {
+                method: 'DELETE',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({id: row.dataset.id})
+            });
+            const result = await res.json();
+            if(res.ok){
+                alert('Tenant deleted!');
+                loadTenants();
+            } else {
+                alert(result.error || 'Delete failed');
+            }
+        } catch(err){
+            console.error(err);
+        }
+    });
+}
+
+// -------------------------
+// SUBMIT FORM
+// -------------------------
+tenantForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData();
+    formData.append('full_name', document.getElementById('tenantName').value);
+    formData.append('email', document.getElementById('tenantEmail').value);
+    formData.append('phone', document.getElementById('tenantPhone').value);
+    formData.append('id_card', document.getElementById('tenantIdCard').value);
+    formData.append('address', document.getElementById('tenantAddress').value);
+
+    if(tenantImage.files[0]) formData.append('image', tenantImage.files[0]);
+
+    const url = editingTenantId ? `/api/tenants/update/${editingTenantId}` : '/api/tenants/create';
+    const method = editingTenantId ? 'PUT' : 'POST';
+
+    try{
+        const res = await fetch(url, {method, body: formData});
+        const result = await res.json();
+        if(res.ok){
+            alert(editingTenantId ? 'Tenant updated!' : 'Tenant added!');
+            tenantPopup.style.display = 'none';
+            loadTenants();
+        } else {
+            alert(result.error || 'Save failed');
+        }
+    } catch(err){
+        console.error(err);
+        alert('Error saving tenant');
+    }
+});
+
+// -------------------------
+// INITIAL LOAD
+// -------------------------
+loadTenants();
+</script>
+
+</body>
+</html>

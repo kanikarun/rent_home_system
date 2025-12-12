@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payments | Rent Home</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo">RH</div>
+  <h2>Rent Home</h2>
+  <nav>
+    <a href="/dashboard">Dashboard</a>
+    <a href="/properties">Properties</a>
+    <a href="/tenants">Tenants</a>
+    <a href="/contracts">Contracts</a>
+    <a class="active" href="/payments">Payments</a>
+    <a href="/maintenance">Maintenance</a>
+    <a href="/reports">Reports</a>
+    <a href="/users">Users</a>
+  </nav>
+  <a href="/login" class="logout-btn">Logout</a>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <input type="text" placeholder="Search payment..." id="searchInput" class="search"/>
+    <div class="user">Admin</div>
+  </header>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Payments</h1>
+      <button id="addPaymentBtn" class="add-tenant-btn">Add Payment</button>
+    </div>
+
+    <div class="table-section">
+      <h2>All Payments</h2>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tenant</th>
+            <th>Room</th>
+            <th>Month</th>
+            <th>Payment Date</th>
+            <th>Amount</th>
+            <th>Total Paid</th>
+            <th>Remaining</th>
+            <th>Method</th>
+            <th>Remarks</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="paymentTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- PAYMENT POPUP -->
+<div id="paymentPopup" class="popup-overlay">
+  <form class="popup-content" id="paymentForm">
+    <h2 id="paymentPopupTitle">Add Payment</h2>
+
+    <label for="contractSelect">Contract (Room - Tenant)</label>
+    <select id="contractSelect" required></select>
+    <label for="monthPaid">Month</label>
+    <select id="monthPaid" required>
+      <option value="">Select Month</option>
+      <option>January</option><option>February</option><option>March</option>
+      <option>April</option><option>May</option><option>June</option>
+      <option>July</option><option>August</option><option>September</option>
+      <option>October</option><option>November</option><option>December</option>
+    </select>
+    <label for="paymentDate">Payment Date</label>
+    <input type="date" id="paymentDate" required>
+
+
+
+    <label for="amount">Amount</label>
+    <input type="number" id="amount" min="0" required>
+
+    <div>
+      <small>Monthly Rent: $<span id="monthlyRent">0</span></small><br>
+      <small>Total Paid: $<span id="totalPaid">0</span></small><br>
+      <small>Remaining: $<span id="remainingAmount">0</span></small>
+    </div>
+
+    <label for="method">Payment Method</label>
+    <select id="method" required>
+      <option>Cash</option>
+      <option>Bank Transfer</option>
+      <option>ABA Pay</option>
+    </select>
+
+    <label for="remarks">Remarks</label>
+    <textarea id="remarks" placeholder="Optional"></textarea>
+
+    <div class="popup-buttons">
+      <button type="submit" class="btn-add">Save</button>
+      <button type="button" class="btn-delete" id="closePaymentPopup">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<script>
+const addPaymentBtn = document.getElementById('addPaymentBtn');
+const paymentPopup = document.getElementById('paymentPopup');
+const closePaymentPopup = document.getElementById('closePaymentPopup');
+const paymentForm = document.getElementById('paymentForm');
+const paymentTableBody = document.getElementById('paymentTableBody');
+const paymentPopupTitle = document.getElementById('paymentPopupTitle');
+
+const contractSelect = document.getElementById('contractSelect');
+const paymentDateInput = document.getElementById('paymentDate');
+const monthPaid = document.getElementById('monthPaid');
+const amountInput = document.getElementById('amount');
+const monthlyRentEl = document.getElementById('monthlyRent');
+const totalPaidEl = document.getElementById('totalPaid');
+const remainingEl = document.getElementById('remainingAmount');
+const methodInput = document.getElementById('method');
+const remarksInput = document.getElementById('remarks');
+
+let editingPaymentId = null;
+let contractsData = [];
+
+// OPEN POPUP
+addPaymentBtn.addEventListener('click', () => {
+  paymentPopupTitle.textContent = "Add Payment";
+  paymentForm.reset();
+  monthlyRentEl.textContent = 0;
+  totalPaidEl.textContent = 0;
+  remainingEl.textContent = 0;
+  editingPaymentId = null;
+  paymentPopup.style.display = 'flex';
+});
+
+// CLOSE POPUP
+closePaymentPopup.addEventListener('click', () => paymentPopup.style.display='none');
+paymentPopup.addEventListener('click', e => { if(e.target===paymentPopup) paymentPopup.style.display='none'; });
+
+// LOAD CONTRACTS FOR PAYMENT
+async function loadContracts() {
+  const resContracts = await fetch('/api/contracts');
+  contractsData = await resContracts.json();
+
+  const resPayments = await fetch('/api/payments');
+  const payments = await resPayments.json();
+
+  contractSelect.innerHTML = '';
+
+  contractsData.forEach(c => {
+    const monthlyRent = parseFloat(c.monthly_rent || 0);
+
+    // Calculate remaining amount for this contract
+    let totalPaid = payments
+      .filter(p => p.contract_id == c.contract_id)
+      .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+
+    let remaining = Math.max(monthlyRent - totalPaid, 0);
+
+    // Show if Available or Unavailable but still has remaining
+    if(c.status === 'Available' || (c.status === 'Unavailable' && remaining > 0)) {
+      const opt = document.createElement('option');
+      opt.value = c.contract_id;
+      opt.textContent = `${c.room_number} - ${c.tenant}` + (c.status === 'Unavailable' ? ` (Unavailable, remaining $${remaining.toFixed(2)})` : '');
+      contractSelect.appendChild(opt);
+    }
+  });
+}
+
+// UPDATE RENT INFO
+async function updateRentInfo() {
+  const contractId = contractSelect.value;
+  const month = monthPaid.value;
+  if(!contractId || !month) return;
+
+  const contract = contractsData.find(c => c.contract_id == contractId);
+  const monthlyRent = parseFloat(contract.monthly_rent || 0);
+
+  const res = await fetch('/api/payments');
+  const payments = await res.json();
+  const totalPaid = payments
+    .filter(p => p.contract_id == contractId && p.month_paid_for === month)
+    .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+
+  monthlyRentEl.textContent = monthlyRent.toFixed(2);
+  totalPaidEl.textContent = totalPaid.toFixed(2);
+  remainingEl.textContent = Math.max(monthlyRent - totalPaid, 0).toFixed(2);
+}
+
+contractSelect.addEventListener('change', updateRentInfo);
+monthPaid.addEventListener('change', async () => {
+  await loadContracts(); // reload options to refresh remaining
+  updateRentInfo();
+});
+
+// LOAD PAYMENTS TABLE
+async function loadPayments() {
+  paymentTableBody.innerHTML = '';
+  const res = await fetch('/api/payments');
+  const payments = await res.json();
+
+  payments.forEach(p => {
+    const amount = parseFloat(p.amount || 0);
+    const monthlyRent = parseFloat(p.monthly_rent || 0);
+
+    // Use actual total_paid from API
+    let totalPaid = parseFloat(p.total_paid || 0);
+    if(totalPaid > monthlyRent) totalPaid = monthlyRent;
+
+    let remaining = monthlyRent - totalPaid;
+    if(remaining < 0) remaining = 0;
+
+    // Color logic
+    const totalColor = totalPaid > 0 ? 'green' : 'black';
+    const remainingColor = remaining > 0 ? 'red' : 'green';
+    const displayRemark = p.remarks ? (p.remarks.length > 10 ? p.remarks.slice(0,10)+'...' : p.remarks) : '-';
+
+    // Highlight row if contract is unavailable and remaining > 0
+    const contractStatus = (p.status || '').trim().toLowerCase();
+    const highlightStyle = (contractStatus === 'unavailable' && remaining > 0)
+        ? 'background-color:#ffe6e6;'
+        : '';
+
+    const tr = document.createElement('tr');
+    tr.setAttribute('style', highlightStyle);
+    tr.innerHTML = `
+      <td>${p.payment_id}</td>
+      <td>${p.tenant || ''}${(contractStatus === 'unavailable' && remaining > 0) ? ' ⚠️' : ''}</td>
+      <td>${p.room_number || ''}</td>
+      <td>${p.month_paid_for || ''}</td>
+      <td>${p.payment_date || ''}</td>
+      <td>$${amount.toFixed(2)}</td>
+      <td style="color:${totalColor};">$${totalPaid.toFixed(2)}</td>
+      <td style="color:${remainingColor};">$${remaining.toFixed(2)}</td>
+      <td>${p.payment_method || ''}</td>
+      <td title="${p.remarks || '-'}">${displayRemark}</td>
+      <td>
+        <button class="btn-edit">Edit</button>
+        <button class="btn-delete">Delete</button>
+      </td>
+    `;
+    attachRowEvents(tr, p.payment_id);
+    paymentTableBody.appendChild(tr);
+  });
+}
+
+
+
+// EDIT / DELETE BUTTONS
+function attachRowEvents(row, id){
+  row.querySelector('.btn-edit').addEventListener('click', async () => {
+    editingPaymentId = id;
+    paymentPopupTitle.textContent = 'Edit Payment';
+    const res = await fetch('/api/payments');
+    const payments = await res.json();
+    const p = payments.find(x => x.payment_id === id);
+    if(!p) return;
+
+    contractSelect.value = p.contract_id;
+    paymentDateInput.value = p.payment_date;
+    monthPaid.value = p.month_paid_for;
+    amountInput.value = p.amount;
+    methodInput.value = p.payment_method;
+    remarksInput.value = p.remarks;
+    updateRentInfo();
+    paymentPopup.style.display = 'flex';
+  });
+
+  row.querySelector('.btn-delete').addEventListener('click', async () => {
+    if(!confirm('Delete this payment?')) return;
+    await fetch(`/api/payments/${id}`, {method:'DELETE'});
+    loadPayments();
+  });
+}
+
+// SAVE PAYMENT
+paymentForm.addEventListener('submit', async e => {
+  e.preventDefault();
+
+  const contractId = contractSelect.value;
+  const month = monthPaid.value;
+  const amountValue = parseFloat(amountInput.value);
+
+  if(!contractId || !month || isNaN(amountValue) || amountValue <= 0 || !methodInput.value){
+    alert('Please fill all required fields correctly.');
+    return;
+  }
+
+  const resPayments = await fetch('/api/payments');
+  const payments = await resPayments.json();
+  const contract = contractsData.find(c => c.contract_id == contractId);
+  const monthlyRent = parseFloat(contract.monthly_rent || 0);
+  const totalPaidSoFar = payments
+    .filter(p => p.contract_id == contractId && p.month_paid_for === month && p.payment_id !== editingPaymentId)
+    .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+  const remainingAmount = monthlyRent - totalPaidSoFar;
+
+  if(remainingAmount <= 0){
+    alert('Tenant already paid for this month!');
+    return;
+  }
+
+  if(amountValue > remainingAmount){
+    alert(`Payment cannot exceed remaining amount: $${remainingAmount.toFixed(2)}`);
+    return;
+  }
+
+  const payload = {
+    contract_id: contractId,
+    payment_date: paymentDateInput.value,
+    month_paid_for: month,
+    amount: amountValue,
+    payment_method: methodInput.value,
+    remarks: remarksInput.value
+  };
+
+  let url = '/api/payments/create';
+  let methodType = 'POST';
+  if(editingPaymentId){
+    url = `/api/payments/${editingPaymentId}`;
+    methodType = 'PUT';
+  }
+
+  const res = await fetch(url, {
+    method: methodType,
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+  if(!res.ok) alert(data.error || 'Failed');
+  else{
+    paymentPopup.style.display='none';
+    editingPaymentId = null;
+    loadPayments();
+  }
+});
+
+// INITIAL LOAD
+loadContracts();
+loadPayments();
+</script>
+</body>
+</html>

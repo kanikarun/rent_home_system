@@ -1,0 +1,39 @@
+/* Form error box */
+#error, .error {
+    display: none; /* initially hidden */
+    padding: 10px 15px;
+    margin-top: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #721c24; /* text color */
+    background-color: #f8d7da; /* light red background */
+    border: 1px solid #f5c6cb; /* border */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Close button */
+#error button, .error button {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #721c24;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#error button:hover, .error button:hover {
+    color: #491217;
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}

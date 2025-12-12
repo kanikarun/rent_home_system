@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Properties | Rent Home</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo">RH</div>
+  <h2>Rent Home</h2>
+  <nav>
+    <a href="/dashboard">Dashboard</a>
+    <a class="active" href="/properties">Properties</a>
+    <a href="/tenants">Tenants</a>
+    <a href="/contracts">Contracts</a>
+    <a href="/payments">Payments</a>
+    <a href="/maintenance">Maintenance</a>
+    <a href="/reports">Reports</a>
+    <a href="/users">Users</a>
+  </nav>
+  <a href="/login" class="logout-btn">Logout</a>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <input type="text" class="search" placeholder="Search properties..." />
+    <div class="user">Admin</div>
+  </header>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Properties</h1>
+      <button id="addPropertyBtn" class="add-tenant-btn">Add Property</button>
+    </div>
+
+    <div class="table-section">
+      <h2>All Properties</h2>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Property</th>
+            <th>Owner</th>
+            <th>Address</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th style="width:150px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="propertyTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PROPERTY POPUP -->
+  <div id="propertyPopup" class="popup-overlay">
+    <form class="popup-content" id="propertyForm">
+      <h2 id="propertyPopupTitle">Add Property</h2>
+
+      <!-- Property Name -->
+      <label>Property Name</label>
+      <input type="text" id="propertyName" required>
+
+      <!-- Owner -->
+      <label>Owner</label>
+      <select id="owner" required></select>
+      <button type="button" id="addOwnerBtn">Add New Owner</button>
+      <div id="currentOwner" class="current-display"></div>
+
+      <!-- New Owner Form -->
+      <div id="newOwnerForm">
+        <label>Full Name</label>
+        <input type="text" id="newOwnerName">
+        <label>Phone</label>
+        <input type="text" id="newOwnerPhone">
+        <label>Email</label>
+        <input type="email" id="newOwnerEmail">
+        <label>Address</label>
+        <input type="text" id="newOwnerAddress">
+        <div class="popup-buttons">
+          <button type="button" id="saveOwnerBtn" class="btn-add">Save Owner</button>
+          <button type="button" id="cancelOwnerBtn" class="btn-delete">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Address -->
+      <label>Address</label>
+      <input type="text" id="address" required>
+
+      <!-- Type and Status -->
+      <label>Type</label>
+      <select id="type" required></select>
+      <div id="currentType" class="current-display"></div>
+
+      <label>Status</label>
+      <select id="propertyStatus">
+        <option value="Active">Active</option>
+        <option value="Inactive">Inactive</option>
+      </select>
+      <div id="currentStatus" class="current-display"></div>
+
+      <div class="popup-buttons">
+        <button type="button" id="addTypeBtn">Add New Type</button>
+        <button type="button" id="addRoomFormBtn" class="btn-add">Add New Room</button>
+      </div>
+
+      <!-- New Type Form -->
+      <div id="newTypeForm">
+        <label>Type Name</label>
+        <input type="text" id="newTypeName">
+        <div class="popup-buttons">
+          <button type="button" id="saveTypeBtn" class="btn-add">Save Type</button>
+          <button type="button" id="cancelTypeBtn" class="btn-delete">Cancel</button>
+        </div>
+      </div>
+
+      <!-- New Room Form -->
+      <div id="newRoomForm">
+        <label>Room Name / Number</label>
+        <input type="text" id="newRoomName">
+        <label>Rent Price</label>
+        <input type="number" id="newRoomPrice" step="0.01">
+        <label>Description</label>
+        <textarea id="newRoomDesc"></textarea>
+        <label>Status</label>
+        <select id="newRoomStatus">
+          <option value="Available">Available</option>
+          <option value="Unavailable">Unavailable</option>
+        </select>
+        <div class="popup-buttons">
+          <button type="button" id="addRoomBtn" class="btn-add">Add Room</button>
+          <button type="button" id="clearRoomsBtn" class="btn-delete">Clear Rooms</button>
+        </div>
+        <div id="roomsList" style="margin-top:10px;"></div>
+      </div>
+
+      <!-- Save / Cancel Property -->
+      <div class="popup-buttons">
+        <button type="submit" class="btn-add">Save Property</button>
+        <button type="button" class="btn-delete" id="closePropertyPopup">Cancel</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<script>
+// --- VARIABLES ---
+let editingId = null;
+let addedRooms = [];
+
+// Elements
+const propertyName = document.getElementById("propertyName");
+const owner = document.getElementById("owner");
+const address = document.getElementById("address");
+const type = document.getElementById("type");
+const title = document.getElementById("propertyPopupTitle");
+const propertyTableBody = document.getElementById("propertyTableBody");
+const propertyPopup = document.getElementById("propertyPopup");
+const propertyForm = document.getElementById("propertyForm");
+const addPropertyBtn = document.getElementById("addPropertyBtn");
+const closePropertyPopup = document.getElementById("closePropertyPopup");
+const propertyStatus = document.getElementById("propertyStatus");
+
+// Owner Elements
+const addOwnerBtn = document.getElementById('addOwnerBtn');
+const newOwnerForm = document.getElementById('newOwnerForm');
+const saveOwnerBtn = document.getElementById('saveOwnerBtn');
+const cancelOwnerBtn = document.getElementById('cancelOwnerBtn');
+const newOwnerName = document.getElementById('newOwnerName');
+const newOwnerPhone = document.getElementById('newOwnerPhone');
+const newOwnerEmail = document.getElementById('newOwnerEmail');
+const newOwnerAddress = document.getElementById('newOwnerAddress');
+const currentOwnerDiv = document.getElementById('currentOwner');
+
+// Type & Room
+const addTypeBtn = document.getElementById('addTypeBtn');
+const addRoomFormBtn = document.getElementById('addRoomFormBtn');
+const newTypeForm = document.getElementById('newTypeForm');
+const newRoomForm = document.getElementById('newRoomForm');
+const saveTypeBtn = document.getElementById('saveTypeBtn');
+const cancelTypeBtn = document.getElementById('cancelTypeBtn');
+const newTypeName = document.getElementById('newTypeName');
+const currentTypeDiv = document.getElementById('currentType');
+
+const newRoomName = document.getElementById('newRoomName');
+const newRoomPrice = document.getElementById('newRoomPrice');
+const newRoomDesc = document.getElementById('newRoomDesc');
+const newRoomStatus = document.getElementById('newRoomStatus');
+const addRoomBtn = document.getElementById('addRoomBtn');
+const clearRoomsBtn = document.getElementById('clearRoomsBtn');
+const roomsList = document.getElementById('roomsList');
+
+// --- OWNER FUNCTIONS ---
+addOwnerBtn.onclick = () => newOwnerForm.style.display = 'block';
+cancelOwnerBtn.onclick = () => { newOwnerForm.style.display='none'; resetOwnerForm(); }
+
+function resetOwnerForm() {
+  newOwnerName.value=''; newOwnerPhone.value=''; newOwnerEmail.value=''; newOwnerAddress.value='';
+}
+
+saveOwnerBtn.onclick = async () => {
+  const data = { full_name:newOwnerName.value, phone:newOwnerPhone.value, email:newOwnerEmail.value, address:newOwnerAddress.value };
+  if(!data.full_name) return alert('Owner name required');
+  const res = await fetch('/api/owners/create', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+  const json = await res.json();
+  if(!res.ok) return alert(json.error || json.message);
+  await loadOwners();
+  setCurrentOwnerDisplay(json.owner_id,json.full_name);
+  newOwnerForm.style.display='none'; resetOwnerForm();
+}
+
+// --- TYPE & ROOM TOGGLE ---
+addTypeBtn.onclick = () => { newTypeForm.style.display = (newTypeForm.style.display==='block')?'none':'block'; newRoomForm.style.display='none'; }
+addRoomFormBtn.onclick = () => { newRoomForm.style.display = (newRoomForm.style.display==='block')?'none':'block'; newTypeForm.style.display='none'; }
+cancelTypeBtn.onclick = () => { newTypeForm.style.display='none'; newTypeName.value=''; }
+
+saveTypeBtn.onclick = async () => {
+  if(!newTypeName.value.trim()) return alert('Type name required');
+  const res = await fetch('/api/properties/type/create', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:newTypeName.value}) });
+  const json = await res.json();
+  if(!res.ok) return alert(json.error||json.message);
+  await loadTypes();
+  setCurrentTypeDisplay(json.type_id,json.type_name || newTypeName.value);
+  newTypeForm.style.display='none'; newTypeName.value='';
+}
+
+// --- DISPLAY CURRENT ---
+function setCurrentOwnerDisplay(id,name){ owner.value=id; currentOwnerDiv.textContent=`Current owner: ${name||'-'}`; }
+function setCurrentTypeDisplay(id,name){ type.value=id; currentTypeDiv.textContent=`Current type: ${name||'-'}`; }
+
+// --- ROOM FUNCTIONS ---
+addRoomBtn.onclick = () => {
+  if(!newRoomName.value.trim()) return alert('Room name required');
+  if(addedRooms.some(r=>r.room_number===newRoomName.value)) return alert('Duplicate room name');
+  addedRooms.push({ room_number:newRoomName.value, rent_price:newRoomPrice.value||0, description:newRoomDesc.value||'', status:newRoomStatus.value });
+  renderRooms();
+  newRoomName.value=''; newRoomPrice.value=''; newRoomDesc.value=''; newRoomStatus.value='Available';
+}
+clearRoomsBtn.onclick=()=>{ addedRooms=[]; renderRooms(); }
+
+function renderRooms(){
+  roomsList.innerHTML='';
+  addedRooms.forEach((room,index)=>{
+    const div=document.createElement('div');
+    div.style.display='flex'; div.style.gap='10px'; div.style.alignItems='center'; div.style.marginBottom='5px';
+
+    ['room_number','rent_price','description','status'].forEach(key=>{
+      const input = key==='status'?document.createElement('select'):document.createElement('input');
+      if(key==='status'){
+        ['Available','Unavailable'].forEach(s=>{ const opt=document.createElement('option'); opt.value=s; opt.textContent=s; input.appendChild(opt); });
+        input.value=room.status;
+        input.onchange=e=>room.status=e.target.value;
+      } else {
+        input.value=room[key];
+        if(key==='rent_price') input.type='number', input.step='0.01';
+        input.onchange=e=>room[key]=e.target.value;
+      }
+      div.appendChild(input);
+    });
+
+    const delBtn=document.createElement('button'); delBtn.textContent='Remove'; delBtn.className='btn-delete';
+    delBtn.onclick=()=>{ addedRooms.splice(index,1); renderRooms(); }
+    div.appendChild(delBtn);
+    roomsList.appendChild(div);
+  });
+}
+
+// --- PROPERTY FORM ---
+addPropertyBtn.onclick=()=>{
+  editingId=null;
+  propertyForm.reset();
+  addedRooms=[];
+  renderRooms();
+  title.textContent='Add Property';
+  propertyPopup.style.display='flex';
+}
+closePropertyPopup.onclick=()=>propertyPopup.style.display='none';
+
+propertyForm.onsubmit = async e => {
+    e.preventDefault();
+    if(!propertyName.value.trim()) return alert('Property name required');
+    if(!owner.value) return alert('Owner required');
+    if(!type.value) return alert('Type required');
+
+    const data = {
+        property_name: propertyName.value,
+        owner_id: owner.value,
+        address: address.value,
+        type_id: type.value,
+        status: propertyStatus.value,
+        rooms: addedRooms
+    };
+
+    const url = editingId ? `/api/properties/update/${editingId}` : '/api/properties/create';
+    const method = editingId ? 'PUT' : 'POST';
+    const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const json = await res.json();
+    if(!res.ok) return alert(json.error||json.message);
+    propertyPopup.style.display='none';
+    addedRooms=[];
+    renderRooms();
+    loadProperties();
+};
+
+// --- LOAD DATA ---
+async function loadOwners(){
+  const res = await fetch('/api/owners');
+  const data = await res.json();
+  owner.innerHTML='';
+  data.forEach(o=>{
+    const opt=document.createElement('option');
+    opt.value=o.owner_id;
+    opt.textContent=o.full_name;
+    owner.appendChild(opt);
+  });
+}
+async function loadTypes(){
+  const res = await fetch('/api/properties/types');
+  const data = await res.json();
+  type.innerHTML='';
+  data.forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t.type_id;
+    opt.textContent=t.type_name;
+    type.appendChild(opt);
+  });
+}
+async function loadProperties(){
+  const res = await fetch('/api/properties');
+  const data = await res.json();
+  propertyTableBody.innerHTML='';
+  data.forEach(p=>{
+    const tr = document.createElement('tr');
+    const statusClass = p.status==='Active' ? 'status-active' : 'status-inactive';
+    tr.innerHTML = `
+      <td>${p.property_id}</td>
+      <td>${p.property_name}</td>
+      <td>${p.owner_name || '-'}</td>
+      <td>${p.address}</td>
+      <td>${p.type_name || '-'}</td>
+      <td class="${statusClass}">${p.status}</td>
+      <td>
+        <button class="btn-edit" onclick="editProperty(${p.property_id})" style="margin-right:5px;">Edit</button>
+        <button class="btn-delete" onclick="deleteProperty(${p.property_id})">Delete</button>
+      </td>
+    `;
+    propertyTableBody.appendChild(tr);
+  });
+}
+
+// --- EDIT & DELETE ---
+window.editProperty = async id => {
+  editingId = id;
+  const res = await fetch(`/api/properties/${id}`);
+  const p = await res.json();
+
+  propertyName.value = p.property_name;
+  address.value = p.address;
+  setCurrentOwnerDisplay(p.owner_id, p.owner_name);
+  setCurrentTypeDisplay(p.type_id, p.type_name);
+  propertyStatus.value = p.status; // <- show current status
+
+  const roomsRes = await fetch(`/api/properties/${id}/rooms`);
+  addedRooms = await roomsRes.json();
+  renderRooms();
+
+  title.textContent = 'Edit Property';
+  propertyPopup.style.display = 'flex';
+}
+
+window.deleteProperty = async id => {
+  if(!confirm('Are you sure?')) return;
+  const res = await fetch('/api/properties/delete', {
+    method:'DELETE',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id})
+  });
+  const json = await res.json();
+  if(!res.ok) return alert(json.error||json.message);
+  loadProperties();
+}
+
+// --- INITIAL LOAD ---
+loadOwners(); loadTypes(); loadProperties();
+
+</script>
+</body>
+</html>

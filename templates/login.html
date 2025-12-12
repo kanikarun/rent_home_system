@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+  <div class="login-wrapper">
+    <div class="login-box">
+      <h1>Rent Home</h1>
+      <form id="loginForm">
+        <input type="text" id="username" placeholder="Username" value="admin" required>
+        <input type="password" id="password" placeholder="Password" value="123" required>
+
+        <div id="errorMsg" class="error-msg"></div>
+
+        <button type="submit">Log In</button>
+      </form>
+      <div class="forgot-password"><a href="#">Forgot Password?</a></div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

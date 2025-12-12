@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maintenance Requests | Rent Home</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo">RH</div>
+  <h2>Rent Home</h2>
+  <nav>
+    <a href="/dashboard">Dashboard</a>
+    <a href="/properties">Properties</a>
+    <a href="/tenants">Tenants</a>
+    <a href="/contracts">Contracts</a>
+    <a href="/payments">Payments</a>
+    <a class="active" href="/maintenance">Maintenance</a>
+    <a href="/reports">Reports</a>
+    <a href="/users">Users</a>
+  </nav>
+  <a href="/login" class="logout-btn">Logout</a>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <input type="text" class="search" placeholder="Search requests..." id="searchInput">
+    <div class="user">Admin</div>
+  </header>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Maintenance Requests</h1>
+      <button class="add-tenant-btn" id="addRequestBtn">Add Request</button>
+    </div>
+
+    <div class="table-section">
+      <h2>All Requests</h2>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Room</th>
+            <th>Tenant</th>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Cost</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="requestTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+<!-- ===== POPUP FORM ===== -->
+<div id="requestPopup" class="popup-overlay">
+  <form class="popup-content" id="requestForm">
+    <h2 id="requestPopupTitle">Add Maintenance Request</h2>
+
+    <label for="roomSelect">Room</label>
+    <select id="roomSelect" required></select>
+
+    <label for="tenantSelect">Tenant</label>
+    <select id="tenantSelect" required></select>
+
+    <label for="requestDate">Date</label>
+    <input type="date" id="requestDate" required>
+
+    <label for="description">Description</label>
+    <textarea id="description" required></textarea>
+
+    <label for="status">Status</label>
+    <select id="status" required>
+      <option value="Pending">Pending</option>
+      <option value="Completed">Completed</option>
+    </select>
+
+    <label for="cost">Cost</label>
+ <input type="number" id="cost" required min="0" step="0.01">
+
+
+    <div class="popup-buttons">
+      <button type="submit" class="btn-add">Save</button>
+      <button type="button" class="btn-cancel" id="closeRequestPopup">Cancel</button>
+    </div>
+  </form>
+</div>
+
+
+<script>
+const addRequestBtn = document.getElementById('addRequestBtn');
+const requestPopup = document.getElementById('requestPopup');
+const closeRequestPopup = document.getElementById('closeRequestPopup');
+const requestForm = document.getElementById('requestForm');
+const requestTableBody = document.getElementById('requestTableBody');
+const requestPopupTitle = document.getElementById('requestPopupTitle');
+const roomSelect = document.getElementById('roomSelect');
+const tenantSelect = document.getElementById('tenantSelect');
+
+let editingRequestId = null;
+
+// Load Rooms and Tenants
+async function loadRoomsAndTenants() {
+  const rooms = await (await fetch('/api/rooms')).json();
+  roomSelect.innerHTML = rooms.map(r => `<option value="${r.room_id}">${r.room_number}</option>`).join('');
+
+  const tenants = await (await fetch('/api/tenants')).json();
+  tenantSelect.innerHTML = tenants.map(t => `<option value="${t.tenant_id}">${t.full_name}</option>`).join('');
+}
+
+// Load Maintenance Requests
+async function loadRequests() {
+  const requests = await (await fetch('/api/maintenance')).json();
+  requestTableBody.innerHTML = requests.map(r => `
+    <tr data-id="${r.request_id}" data-room-id="${r.room_id}" data-tenant-id="${r.tenant_id}">
+      <td>${r.request_id}</td>
+      <td>${r.room_number || '-'}</td>
+      <td>${r.tenant_name || '-'}</td>
+      <td>${r.request_date}</td>
+      <td>${r.description}</td>
+      <td><span class="${r.status === 'Completed' ? 'status-active' : 'status-inactive'}">${r.status}</span></td>
+      <td>$${r.cost}</td>
+      <td>
+        <button class="btn-edit">Edit</button>
+        <button class="btn-delete">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+  attachRowEvents();
+}
+
+// Open Add Popup
+addRequestBtn.addEventListener('click', async () => {
+  requestPopupTitle.textContent = "Add Maintenance Request";
+  requestForm.reset();
+  editingRequestId = null;
+  await loadRoomsAndTenants();
+  requestPopup.style.display = 'flex';
+});
+
+// Close Popup
+closeRequestPopup.addEventListener('click', () => requestPopup.style.display = 'none');
+requestPopup.addEventListener('click', e => { if(e.target === requestPopup) requestPopup.style.display = 'none'; });
+
+// Submit Form (Add / Edit)
+requestForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const room_id = parseInt(roomSelect.value);
+  const tenant_id = parseInt(tenantSelect.value);
+  const request_date = document.getElementById('requestDate').value;
+  const description = document.getElementById('description').value.trim();
+  const status = document.getElementById('status').value;
+  const cost = parseFloat(document.getElementById('cost').value);
+
+  // Validation
+  if (!room_id) return alert("Please select a room.");
+  if (!tenant_id) return alert("Please select a tenant.");
+  if (!request_date) return alert("Please select a date.");
+  if (description.length < 5) return alert("Description must be at least 5 characters.");
+  if (!["Pending","Completed"].includes(status)) return alert("Invalid status.");
+  if (isNaN(cost) || cost < 0) return alert("Cost must be 0 or greater.");
+
+  const payload = { room_id, tenant_id, request_date, description, status, cost };
+
+  try {
+    if(editingRequestId) {
+      await fetch(`/api/maintenance/update/${editingRequestId}`, {
+        method: 'PUT',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+    } else {
+      await fetch('/api/maintenance/create', {
+        method: 'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+    }
+    requestPopup.style.display = 'none';
+    loadRequests();
+  } catch(err) {
+    alert("Error saving request: "+err);
+  }
+});
+
+// Attach Edit / Delete Buttons
+function attachRowEvents() {
+  document.querySelectorAll('.btn-edit').forEach(btn => {
+    btn.onclick = async () => {
+      const tr = btn.closest('tr');
+      editingRequestId = tr.dataset.id;
+      requestPopupTitle.textContent = "Edit Maintenance Request";
+      await loadRoomsAndTenants();
+
+      roomSelect.value = tr.dataset.roomId;
+      tenantSelect.value = tr.dataset.tenantId || '';
+      document.getElementById('requestDate').value = tr.children[3].textContent;
+      document.getElementById('description').value = tr.children[4].textContent;
+      document.getElementById('status').value = tr.children[5].textContent.trim();
+      document.getElementById('cost').value = tr.children[6].textContent.replace('$','');
+
+      requestPopup.style.display = 'flex';
+    };
+  });
+
+  document.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.onclick = async () => {
+      if(confirm("Are you sure to delete this request?")) {
+        const tr = btn.closest('tr');
+        const id = tr.dataset.id;
+        await fetch(`/api/maintenance/delete/${id}`, { method: 'DELETE' });
+        loadRequests();
+      }
+    };
+  });
+}
+
+// Initial Load
+loadRequests();
+
+</script>
+</body>
+</html>

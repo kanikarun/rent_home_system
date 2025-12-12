@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Users | Rent Home</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">RH</div>
+    <h2>Rent Home</h2>
+    <nav>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/properties">Properties</a>
+      <a href="/tenants">Tenants</a>
+      <a href="/contracts">Contracts</a>
+      <a href="/payments">Payments</a>
+      <a href="/maintenance">Maintenance</a>
+      <a href="/reports">Reports</a>
+      <a class="active" href="/users">Users</a>
+    </nav>
+    <a href="/login" class="logout-btn">Logout</a>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <input type="text" class="search" placeholder="Search users..." />
+      <div class="user">Admin</div>
+    </header>
+
+    <div class="container">
+
+      <!-- PAGE HEADER -->
+      <div class="page-header">
+        <h1>Users</h1>
+        <button class="add-tenant-btn">Add User</button>
+      </div>
+
+      <!-- USER TABLE -->
+      <div class="table-section">
+        <h2>All Users</h2>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Email</th>
+{#              <th>Image</th>#}
+              <th>Created At</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="user-table-body"></tbody>
+        </table>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- USER POPUP FORM -->
+  <div id="userPopup" class="popup-overlay">
+
+    <form class="popup-content" id="userForm">
+      <h2 id="popupTitle">Add User</h2>
+
+      <label>Username</label>
+      <input type="text" id="username" required>
+
+      <label>Password</label>
+      <input type="password" id="password" required>
+
+      <label>Role</label>
+      <select id="role" required>
+        <option value="Administrator">Administrator</option>
+        <option value="Manager">Manager</option>
+        <option value="Staff">Staff</option>
+      </select>
+
+      <label>Email</label>
+      <input type="email" id="email" required>
+
+      <label>Created At</label>
+      <input type="date" id="created_at" required>
+
+      <label for="image">Image</label>
+      <input type="file" id="image" name="image" accept="image/*" required>
+
+      <div class="popup-buttons">
+        <button type="submit" class="btn-add" id="saveBtn">Save</button>
+        <button type="button" class="btn-delete" id="closePopup">Cancel</button>
+      </div>
+    </form>
+
+  </div>
+
+  <!-- JS FUNCTIONS -->
+  <script>
+
+    // -------------------------
+// VARIABLES
+// -------------------------
+const addBtn = document.querySelector(".add-tenant-btn");
+const popup = document.getElementById("userPopup");
+const closePopup = document.getElementById("closePopup");
+const form = document.getElementById("userForm");
+const popupTitle = document.getElementById("popupTitle");
+const saveBtn = document.getElementById("saveBtn");
+
+// -------------------------
+// LOAD USERS
+// -------------------------
+async function loadUsers() {
+  try {
+    const res = await fetch('/api/users');
+    const users = await res.json();
+
+    const tableBody = document.getElementById("user-table-body");
+    tableBody.innerHTML = "";
+
+    users.forEach(user => {
+      tableBody.innerHTML += `
+        <tr>
+          <td>${user.user_id}</td>
+          <td>${user.username}</td>
+          <td>${user.role}</td>
+          <td>${user.email}</td>
+          {#<td>#}
+          {#    ${(() => {#}
+          {#        const fullPath = user.image || "";#}
+          {#        const fileName = fullPath.split('/').pop(); // get the full filename#}
+          {#        const nameParts = fileName.split('-');     // split by dash#}
+          {#        return nameParts[nameParts.length - 1];    // get last part#}
+          {#    })()}#}
+          {#  </td>#}
+
+          <td>${user.created_at}</td>
+          <td>
+            <button class="btn-edit" onclick="editUser(${user.user_id})">Edit</button>
+            <button class="btn-delete" onclick="deleteUser(${user.user_id})">Delete</button>
+          </td>
+        </tr>
+      `;
+    });
+  } catch (err) {
+    console.error("Error loading users:", err);
+  }
+}
+
+// -------------------------
+// ADD USER BUTTON
+// -------------------------
+addBtn.addEventListener("click", () => {
+  form.reset();
+  popup.style.display = "flex";
+  popupTitle.textContent = "Add User";
+  saveBtn.textContent = "Save";
+
+  delete form.dataset.editId; // ADD mode
+});
+
+// -------------------------
+// CLOSE POPUP
+// -------------------------
+closePopup.addEventListener("click", () => popup.style.display = "none");
+popup.addEventListener("click", e => {
+  if (e.target === popup) popup.style.display = "none";
+});
+
+// -------------------------
+// EDIT USER
+// -------------------------
+async function editUser(user_id) {
+  try {
+    const res = await fetch(`/api/users/${user_id}`); // GET user endpoint
+    const user = await res.json();
+
+    popup.style.display = "flex";
+    popupTitle.textContent = "Edit User";
+    saveBtn.textContent = "Update";
+
+    document.getElementById("username").value = user.username;
+    document.getElementById("password").value = ""; // leave empty
+    document.getElementById("role").value = user.role;
+    document.getElementById("email").value = user.email;
+    document.getElementById("created_at").value = user.created_at;
+
+    form.dataset.editId = user.user_id;
+
+  } catch (err) {
+    console.error("Error editing user:", err);
+  }
+}
+
+// -------------------------
+// DELETE USER
+// -------------------------
+async function deleteUser(id) {
+  if (!confirm("Are you sure?")) return;
+
+  try {
+    const res = await fetch("/api/users/delete", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: id })
+    });
+
+    const result = await res.json();
+    if (res.ok) {
+      alert("User deleted!");
+      loadUsers();
+    } else {
+      alert(result.error || "Delete failed");
+    }
+  } catch (err) {
+    console.error("Error deleting user:", err);
+  }
+}
+
+// -------------------------
+// SUBMIT FORM
+// -------------------------
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const formData = new FormData();
+  const userId = form.dataset.editId ? parseInt(form.dataset.editId) : null;
+
+  formData.append("username", document.getElementById("username").value);
+  formData.append("email", document.getElementById("email").value);
+  formData.append("role", document.getElementById("role").value);
+  formData.append("created_at", document.getElementById("created_at").value);
+
+  const password = document.getElementById("password").value;
+  if (password) formData.append("password", password); // optional on edit
+
+  const imageFile = document.getElementById("image").files[0];
+  if (imageFile) formData.append("image", imageFile);
+
+  try {
+    const url = userId ? `/api/users/update/${userId}` : "/api/users/create";
+    const method = userId ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method: method,
+      body: formData
+    });
+
+    const result = await res.json();
+
+    if (res.ok) {
+      alert(userId ? "User updated!" : "User added!");
+      popup.style.display = "none";
+      loadUsers();
+    } else {
+      alert(result.error || "Save failed");
+    }
+  } catch (err) {
+    console.error("Error saving user:", err);
+    alert("Error saving user");
+  }
+});
+
+// -------------------------
+// INITIAL LOAD
+// -------------------------
+loadUsers();
+
+
+  </script>
+
+</body>
+</html>

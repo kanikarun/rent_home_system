@@ -1,0 +1,110 @@
+/* ===== SCROLLABLE POPUP CONTENT ===== */
+.popup-content {
+  background: white;
+  padding: 25px 40px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  max-width: 700px;
+  width: 100%;
+  max-height: 80vh;       /* popup height limited to 80% of viewport */
+  overflow-y: auto;       /* vertical scrollbar when content overflows */
+  box-sizing: border-box;
+  margin: 0 20px;         /* small side margin on mobile */
+  position: relative;
+}
+
+/* Scrollbar styling (modern browsers) */
+.popup-content::-webkit-scrollbar {
+  width: 8px;
+}
+.popup-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 6px;
+}
+.popup-content::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 6px;
+}
+.popup-content::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* ===== NEW OWNER FORM ===== */
+#newOwnerForm {
+  display: none; /* hidden by default */
+  margin-top: 20px;
+  padding: 15px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+#newOwnerForm label {
+  font-weight: 600;
+  margin-top: 10px;
+  color: #2c3e50;
+}
+
+#newOwnerForm input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+/* New Owner buttons */
+#newOwnerForm .btn-add,
+#newOwnerForm .btn-delete {
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+#newOwnerForm .btn-add {
+  background: #1abc9c;
+  color: white;
+}
+
+#newOwnerForm .btn-add:hover {
+  background: #149f84;
+}
+
+#newOwnerForm .btn-delete {
+  background: #c0392b;
+  color: white;
+}
+
+#newOwnerForm .btn-delete:hover {
+  background: #962d22;
+}
+
+/* ===== ADD NEW OWNER BUTTON ===== */
+#addOwnerBtn {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+#addOwnerBtn:hover {
+  background: #2179b2;
+}
+
+/* ===== CURRENT OWNER DISPLAY ===== */
+#currentOwner {
+  margin-top: 5px;
+  font-size: 14px;
+  color: #555;
+  font-style: italic;
+}

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="logo">RH</div>
+    <h2>Rent Home</h2>
+    <nav>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/properties">Properties</a>
+        <a href="/tenants">Tenants</a>
+        <a href="/contracts">Contracts</a>
+        <a href="/payments">Payments</a>
+        <a href="/maintenance">Maintenance</a>
+        <a class="active" href="/reports">Reports</a>
+        <a href="/users">Users</a>
+    </nav>
+    <a href="/login" class="logout-btn">Logout</a>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+        <input type="text" class="search" placeholder="Search reports..." />
+        <div class="user">Admin</div>
+    </header>
+
+    <div class="container">
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <h1>Reports</h1>
+        </div>
+
+        <!-- SUMMARY CARDS -->
+        <div class="cards">
+            <div class="card">
+                <h3>Total Income (This Month)</h3>
+                <p><strong>$0.00</strong></p>
+            </div>
+            <div class="card">
+                <h3>Outstanding Payments</h3>
+                <p><strong>0 Tenants</strong></p>
+            </div>
+            <div class="card">
+                <h3>Active Contracts</h3>
+                <p><strong>0</strong></p>
+            </div>
+            <div class="card">
+                <h3>Maintenance Costs (This Month)</h3>
+                <p><strong>$0.00</strong></p>
+            </div>
+        </div>
+
+        <!-- MONTHLY INCOME REPORT -->
+        <div class="table-section">
+            <h2>Monthly Income Report</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Total Collected</th>
+                        <th>Total Expected</th>
+                        <th>Difference</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>January</td>
+                        <td>$0.00</td>
+                        <td>$0.00</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>February</td>
+                        <td>$0.00</td>
+                        <td>$0.00</td>
+                        <td>$0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- OUTSTANDING PAYMENTS -->
+        <div class="table-section" style="margin-top: 30px;">
+            <h2>Outstanding Payments</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Tenant</th>
+                        <th>Room</th>
+                        <th>Month Due</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr>
+                        <td>No Data</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- MAINTENANCE COST REPORT -->
+        <div class="table-section" style="margin-top: 30px;">
+            <h2>Maintenance Cost Summary</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Total Maintenance Cost</th>
+                        <th>Completed Requests</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>January</td>
+                        <td>$0.00</td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td>February</td>
+                        <td>$0.00</td>
+                        <td>0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</main>
+
+</body>
+</html>

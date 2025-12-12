@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rent Home Management UI</title>
+
+  <!-- Link static CSS correctly -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- ===== SIDEBAR NAVIGATION ===== -->
+  <aside class="sidebar">
+    <div class="logo">RH</div>
+    <h2>Rent Home</h2>
+   <nav> <a class="active" href="/dashboard">Dashboard</a>
+       <a href="/properties">Properties</a> <a href="/tenants">Tenants</a>
+       <a href="/contracts">Contracts</a> <a href="/payments">Payments</a>
+       <a href="/maintenance">Maintenance</a> <a href="/reports">Reports</a>
+       <a href="/users">Users</a> </nav>
+    <a href="/login" class="logout-btn">Logout</a>
+  </aside>
+
+  <!-- ========== MAIN AREA ========== -->
+  <main class="main">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <input type="text" placeholder="Search..." class="search" />
+      <div class="user">Admin</div>
+    </header>
+
+      <!-- DASHBOARD CARDS -->
+      <div class="container">
+          <h1 class="page-header">Dashboard</h1>
+          <section class="cards">
+    <div class="card">
+        <h3>Income</h3>
+        <p>$9,340</p>
+    </div>
+
+    <div class="card">
+        <h3>Tenants</h3>
+        <p>3</p>
+    </div>
+
+    <div class="card">
+        <h3>Owners</h3>
+        <p>3</p>
+    </div>
+
+    <div class="card">
+        <h3>Maintenance</h3>
+        <p>4 Open</p>
+    </div>
+</section>
+           <!-- EXAMPLE TABLE -->
+          <section class="table-section">
+      <h2>Properties</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Owner</th>
+            <th>Address</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Rose Apartment</td>
+            <td>John Doe</td>
+            <td>Phnom Penh</td>
+            <td>Apartment</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+      </div>
+
+
+  </main>
+
+
+</body>
+</html>
+
+<!--
+Create the following files next to this HTML:
+
+style.css
+script.js
+
+I can generate them for you — just tell me.
+-->
