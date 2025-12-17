@@ -65,9 +65,7 @@
   <form class="popup-content" id="paymentForm">
     <h2 id="paymentPopupTitle">Add Payment</h2>
 
-    <label for="contractSelect">Contract (Room - Tenant)</label>
-    <select id="contractSelect" required></select>
-    <label for="monthPaid">Month</label>
+     <label for="monthPaid">Month</label>
     <select id="monthPaid" required>
       <option value="">Select Month</option>
       <option>January</option><option>February</option><option>March</option>
@@ -75,6 +73,10 @@
       <option>July</option><option>August</option><option>September</option>
       <option>October</option><option>November</option><option>December</option>
     </select>
+
+    <label for="contractSelect">Contract (Room - Tenant)</label>
+    <select id="contractSelect" required></select>
+
     <label for="paymentDate">Payment Date</label>
     <input type="date" id="paymentDate" required>
 
@@ -184,8 +186,9 @@ async function updateRentInfo() {
   const res = await fetch('/api/payments');
   const payments = await res.json();
   const totalPaid = payments
-    .filter(p => p.contract_id == contractId && p.month_paid_for === month)
-    .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+  .filter(p => p.contract_id == contractId && p.month_paid_for === month)
+  .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+
 
   monthlyRentEl.textContent = monthlyRent.toFixed(2);
   totalPaidEl.textContent = totalPaid.toFixed(2);

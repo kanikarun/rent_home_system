@@ -25,10 +25,12 @@ def get_all_payments():
                 p.payment_method,
                 p.month_paid_for,
                 p.remarks,
+                p.total_paid,
+                p.remaining,
                 c.tenant_id,
                 c.room_id,
                 c.monthly_rent,
-                c.status,          -- add status
+                c.status,
                 t.full_name AS tenant,
                 r.room_number
             FROM payments p
@@ -80,8 +82,8 @@ def get_all_payments():
                 "payment_method": row['payment_method'] or "",
                 "month_paid_for": month_paid_for,
                 "remarks": row['remarks'] or "",
-                "total_paid": total_paid,
-                "remaining": remaining,
+                "total_paid": float(row['total_paid'] or 0),
+                "remaining": float(row['remaining'] or 0),
                 "status": row['status'] or ""   # <-- include status
             })
 

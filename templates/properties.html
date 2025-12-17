@@ -104,7 +104,7 @@
 
       <div class="popup-buttons">
         <button type="button" id="addTypeBtn">Add New Type</button>
-        <button type="button" id="addRoomFormBtn" class="btn-add">Add New Room</button>
+        <button type="button" id="addRoomFormBtn" class="btn-add">Add or Edit New Room</button>
       </div>
 
       <!-- New Type Form -->
@@ -363,9 +363,16 @@ window.editProperty = async id => {
   setCurrentTypeDisplay(p.type_id, p.type_name);
   propertyStatus.value = p.status; // <- show current status
 
-  const roomsRes = await fetch(`/api/properties/${id}/rooms`);
-  addedRooms = await roomsRes.json();
-  renderRooms();
+const roomsRes = await fetch(`/api/properties/${id}/rooms`);
+addedRooms = (await roomsRes.json()).map(r => ({
+  room_id: r.room_id,
+  room_number: r.room_number,
+  rent_price: r.rent_price,
+  description: r.description,
+  status: r.status
+}));
+renderRooms();
+
 
   title.textContent = 'Edit Property';
   propertyPopup.style.display = 'flex';
@@ -385,7 +392,26 @@ window.deleteProperty = async id => {
 
 // --- INITIAL LOAD ---
 loadOwners(); loadTypes(); loadProperties();
+const errorPopup = document.getElementById('errorPopup');
+const errorMessage = document.getElementById('errorMessage');
+const closeErrorPopup = document.getElementById('closeErrorPopup');
+
+function showError(msg) {
+  errorMessage.textContent = msg;
+  errorPopup.style.display = 'flex';
+}
+
+closeErrorPopup.onclick = () => {
+  errorPopup.style.display = 'none';
+}
+
+// Optional: click outside to close
+errorPopup.addEventListener('click', e => {
+  if(e.target === errorPopup) errorPopup.style.display = 'none';
+});
 
 </script>
+
+
 </body>
 </html>

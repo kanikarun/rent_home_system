@@ -49,7 +49,26 @@ def get_all_contracts():
             "status": c.status
         })
     return jsonify(result), 200
-
+# ===================== ACTIVE CONTRACT =====================
+@app.get('/api/contracts/active')
+def get_active_contracts():
+    sql = text("""
+        SELECT c.contract_id, c.room_id, r.room_number,
+               c.tenant_id, t.full_name AS tenant_name
+        FROM contracts c
+        LEFT JOIN tenants t ON c.tenant_id = t.tenant_id
+        LEFT JOIN rooms r ON c.room_id = r.room_id
+        WHERE c.status='Available'
+    """)
+    rows = db.session.execute(sql).mappings().all()
+    contracts = [{
+        "contract_id": r["contract_id"],
+        "room_id": r["room_id"],
+        "room_number": r["room_number"],
+        "tenant_id": r["tenant_id"],
+        "tenant_name": r["tenant_name"]
+    } for r in rows]
+    return jsonify(contracts)
 
 # ===================== CREATE CONTRACT =====================
 @app.post('/api/contracts')

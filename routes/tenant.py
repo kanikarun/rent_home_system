@@ -5,6 +5,7 @@ from flask import Flask, request, jsonify
 from sqlalchemy import text
 from werkzeug.utils import secure_filename
 from app import app, db
+from models import *
 
 
 UPLOAD_FOLDER = 'static/images/tenants'
@@ -23,13 +24,16 @@ def is_valid_email(email):
 # GET ALL TENANTS
 # -------------------------
 @app.get('/api/tenants')
-def get_tenant():
-    sql = text("SELECT tenant_id, full_name, phone, email, id_card, address, image FROM tenants")
-    result = db.session.execute(sql).fetchall()
-    rows = [dict(row._mapping) for row in result]
-    return jsonify(rows) if rows else jsonify({'message': 'No tenants found'})
+def get_tenants():
+    sql = text("""
+        SELECT t.tenant_id, t.full_name, t.email, t.phone, t.id_card, t.address, t.image
+        FROM tenants t
+        LEFT JOIN contracts c ON t.tenant_id = c.tenant_id AND c.status='Unavailable'
+    """)
+    rows = db.session.execute(sql).mappings().all()
+    tenants = [dict(r) for r in rows]
+    return jsonify(tenants)
 
-# -------------------------
 # GET TENANT BY ID
 # -------------------------
 @app.get('/api/tenants/<int:tenant_id>')

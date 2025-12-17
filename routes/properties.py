@@ -107,17 +107,14 @@ def get_property_by_id_api(property_id):
 
 @app.get('/api/properties/<int:property_id>/rooms')
 def get_property_rooms(property_id):
-    p = Properties.query.get(property_id)
-    if not p:
-        return jsonify({"error": "Property not found"}), 404
     rooms = Rooms.query.filter_by(property_id=property_id).order_by(Rooms.room_id).all()
     return jsonify([{
+        "room_id": r.room_id,
         "room_number": r.room_number,
-        "rent_price": r.rent_price,
+        "rent_price": float(r.rent_price or 0),
         "description": r.description,
         "status": r.status
     } for r in rooms]), 200
-
 
 @app.post('/api/properties/create')
 def create_property():
@@ -162,6 +159,7 @@ def update_property_api(property_id):
     if not p:
         return jsonify({"error": "Property not found"}), 404
 
+    # update property info
     p.property_name = data.get("property_name", p.property_name)
     p.owner_id = data.get("owner_id", p.owner_id)
     p.address = data.get("address", p.address)
@@ -169,18 +167,29 @@ def update_property_api(property_id):
     p.status = data.get("status", p.status)
     db.session.commit()
 
+    # ---- ROOM UPDATE (IMPORTANT) ----
     if "rooms" in data:
-        Rooms.query.filter_by(property_id=property_id).delete()
         for r in data["rooms"]:
-            new_room = Rooms(
-                property_id=property_id,
-                room_number=r.get("room_number"),
-                rent_price=r.get("rent_price", 0),
-                description=r.get("description", ""),
-                status=r.get("status", "Available")
-            )
-            db.session.add(new_room)
+            if r.get("room_id"):
+                # UPDATE existing room
+                room = Rooms.query.get(r["room_id"])
+                if room:
+                    room.room_number = r["room_number"]
+                    room.rent_price = r.get("rent_price", room.rent_price)
+                    room.description = r.get("description", "")
+                    room.status = r.get("status", room.status)
+            else:
+                # CREATE new room
+                db.session.add(Rooms(
+                    property_id=property_id,
+                    room_number=r["room_number"],
+                    rent_price=r.get("rent_price", 0),
+                    description=r.get("description", ""),
+                    status=r.get("status", "Available")
+                ))
+
         db.session.commit()
+
     return jsonify({"message": "Property updated"}), 200
 
 

@@ -6,3 +6,4 @@ from routes.properties_type import *
 from routes.rooms import *
 from routes.maintenance import *
 from routes.payments import *
+from routes.reports import *

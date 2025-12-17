@@ -7,25 +7,33 @@ from models import *
 def get_rooms():
     try:
         query = text("""
-            SELECT r.room_id, r.property_id, r.room_number, r.rent_price, r.description, r.status
+            SELECT 
+                r.room_id,
+                r.property_id,
+                p.property_name,
+                r.room_number,
+                r.rent_price,
+                r.description,
+                r.status
             FROM rooms r
             INNER JOIN properties p ON r.property_id = p.property_id
-            ORDER BY r.property_id, r.room_number
+            ORDER BY p.property_name, r.room_number
         """)
         rooms = db.session.execute(query).fetchall()
-        result = []
-        for r in rooms:
-            result.append({
-                "room_id": r.room_id,
-                "property_id": r.property_id,
-                "room_number": r.room_number,
-                "rent_price": float(r.rent_price or 0.0),
-                "description": r.description,
-                "status": r.status
-            })
-        return jsonify(result), 200
+
+        return jsonify([{
+            "room_id": r.room_id,
+            "property_id": r.property_id,
+            "property_name": r.property_name,
+            "room_number": r.room_number,
+            "rent_price": float(r.rent_price or 0),
+            "description": r.description,
+            "status": r.status
+        } for r in rooms]), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
 @app.delete('/api/rooms/<int:room_id>')
 def delete_room(room_id):
     room = rooms.query.get(room_id)
