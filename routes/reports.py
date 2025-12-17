@@ -27,7 +27,7 @@ def get_summary():
             FROM contracts
             WHERE status='Available'
               AND start_date <= :today
-              AND end_date >= :today
+           
         """)
         active_contracts = db.session.execute(sql_active, {"today": today.date()}).scalar()
 
@@ -36,7 +36,7 @@ def get_summary():
             SELECT COUNT(*)
             FROM contracts c
             LEFT JOIN payments p ON c.contract_id = p.contract_id
-            WHERE c.status='Unavailable'
+            WHERE c.status='Available'
               AND (p.contract_id IS NULL OR p.amount < c.monthly_rent)
         """)
         outstanding_tenants = db.session.execute(sql_outstanding).scalar()
