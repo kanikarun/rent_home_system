@@ -45,26 +45,26 @@
         <div class="cards">
             <div class="card">
                 <h3>Total Income (This Month)</h3>
-                <p><strong>$0.00</strong></p>
+                <p><strong id="total-income">$0.00</strong></p>
             </div>
             <div class="card">
                 <h3>Outstanding Payments</h3>
-                <p><strong>0 Tenants</strong></p>
+                <p><strong id="outstanding-tenants">0 Tenants</strong></p>
             </div>
             <div class="card">
                 <h3>Active Contracts</h3>
-                <p><strong>0</strong></p>
+                <p><strong id="active-contracts">0</strong></p>
             </div>
             <div class="card">
                 <h3>Maintenance Costs (This Month)</h3>
-                <p><strong>$0.00</strong></p>
+                <p><strong id="maintenance-cost">$0.00</strong></p>
             </div>
         </div>
 
         <!-- MONTHLY INCOME REPORT -->
         <div class="table-section">
             <h2>Monthly Income Report</h2>
-            <table class="data-table">
+            <table class="data-table" id="monthly-income-table">
                 <thead>
                     <tr>
                         <th>Month</th>
@@ -74,18 +74,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>January</td>
-                        <td>$0.00</td>
-                        <td>$0.00</td>
-                        <td>$0.00</td>
-                    </tr>
-                    <tr>
-                        <td>February</td>
-                        <td>$0.00</td>
-                        <td>$0.00</td>
-                        <td>$0.00</td>
-                    </tr>
+                    <!-- Rows will be populated via JS -->
                 </tbody>
             </table>
         </div>
@@ -93,7 +82,7 @@
         <!-- OUTSTANDING PAYMENTS -->
         <div class="table-section" style="margin-top: 30px;">
             <h2>Outstanding Payments</h2>
-            <table class="data-table">
+            <table class="data-table" id="outstanding-payments-table">
                 <thead>
                     <tr>
                         <th>Tenant</th>
@@ -102,14 +91,8 @@
                         <th>Amount</th>
                     </tr>
                 </thead>
-
                 <tbody>
-                    <tr>
-                        <td>No Data</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                    </tr>
+                    <!-- Rows will be populated via JS -->
                 </tbody>
             </table>
         </div>
@@ -117,7 +100,7 @@
         <!-- MAINTENANCE COST REPORT -->
         <div class="table-section" style="margin-top: 30px;">
             <h2>Maintenance Cost Summary</h2>
-            <table class="data-table">
+            <table class="data-table" id="maintenance-summary-table">
                 <thead>
                     <tr>
                         <th>Month</th>
@@ -126,22 +109,89 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>January</td>
-                        <td>$0.00</td>
-                        <td>0</td>
-                    </tr>
-                    <tr>
-                        <td>February</td>
-                        <td>$0.00</td>
-                        <td>0</td>
-                    </tr>
+                    <!-- Rows will be populated via JS -->
                 </tbody>
             </table>
         </div>
 
     </div>
 </main>
+
+<script>
+async function fetchReports() {
+    try {
+        // Summary
+        const summaryRes = await fetch('/api/reports/summary');
+        const summary = await summaryRes.json();
+        document.getElementById('total-income').textContent = `$${summary.total_income.toFixed(2)}`;
+        document.getElementById('active-contracts').textContent = summary.active_contracts;
+        document.getElementById('outstanding-tenants').textContent = `${summary.outstanding_tenants} Tenants`;
+        document.getElementById('maintenance-cost').textContent = `$${summary.maintenance_cost.toFixed(2)}`;
+
+        // Monthly Income
+        const incomeRes = await fetch('/api/reports/monthly_income');
+        const incomeData = await incomeRes.json();
+        const incomeTableBody = document.querySelector('#monthly-income-table tbody');
+        incomeTableBody.innerHTML = '';
+        incomeData.forEach(row => {
+            const monthName = new Date(2025, row.month - 1).toLocaleString('default', { month: 'long' });
+            incomeTableBody.innerHTML += `
+                <tr>
+                    <td>${monthName}</td>
+                    <td>$${row.total_collected.toFixed(2)}</td>
+                    <td>$${row.total_expected.toFixed(2)}</td>
+                    <td>$${row.difference.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+
+        // Outstanding Payments
+        const outRes = await fetch('/api/reports/outstanding_payments');
+        const outData = await outRes.json();
+        const outTableBody = document.querySelector('#outstanding-payments-table tbody');
+        outTableBody.innerHTML = '';
+        if (outData.length === 0) {
+            outTableBody.innerHTML = `<tr>
+                <td colspan="4">No Data</td>
+            </tr>`;
+        } else {
+            outData.forEach(row => {
+                const monthName = new Date(2025, row.month_due - 1).toLocaleString('default', { month: 'long' });
+                outTableBody.innerHTML += `
+                    <tr>
+                        <td>${row.tenant}</td>
+                        <td>${row.room_number}</td>
+                        <td>${monthName}</td>
+                        <td>$${row.amount.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Maintenance Summary
+        const maintRes = await fetch('/api/reports/maintenance_summary');
+        const maintData = await maintRes.json();
+        const maintTableBody = document.querySelector('#maintenance-summary-table tbody');
+        maintTableBody.innerHTML = '';
+        maintData.forEach(row => {
+            const monthName = new Date(2025, row.month - 1).toLocaleString('default', { month: 'long' });
+            maintTableBody.innerHTML += `
+                <tr>
+                    <td>${monthName}</td>
+                    <td>$${row.total_maintenance_cost.toFixed(2)}</td>
+                    <td>${row.completed_requests}</td>
+                </tr>
+            `;
+        });
+
+    } catch (err) {
+        console.error('Error fetching reports:', err);
+    }
+}
+
+// Load reports on page load
+document.addEventListener('DOMContentLoaded', fetchReports);
+</script>
 
 </body>
 </html>
