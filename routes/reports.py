@@ -26,7 +26,7 @@ def get_summary():
             SELECT COUNT(*)
             FROM contracts
             WHERE status='Available'
-              AND start_date <= :today
+            
            
         """)
         active_contracts = db.session.execute(sql_active, {"today": today.date()}).scalar()
