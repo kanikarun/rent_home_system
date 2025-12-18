@@ -10,3 +10,4 @@ from routes.reports import *
 from routes.login import *
 from routes.dashboard import *
 from routes.print_payment import *
+from routes.print_reports import *

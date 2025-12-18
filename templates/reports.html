@@ -40,6 +40,10 @@
         <!-- PAGE HEADER -->
         <div class="page-header">
             <h1>Reports</h1>
+        <button onclick="printReport()" class="add-tenant-btn" style="cursor:pointer;" >
+            Print Report
+        </button>
+
         </div>
 
         <!-- SUMMARY CARDS -->
@@ -188,6 +192,19 @@ async function fetchReports() {
     } catch (err) {
         console.error('Error fetching reports:', err);
     }
+}
+
+
+function printReport() {
+    const printWindow = window.open('/print-reports', '_blank');
+
+    // Wait until the page is fully loaded before printing
+    printWindow.onload = function() {
+        // Ensure data has loaded
+        setTimeout(() => {
+            printWindow.print();
+        }, 500); // small delay for JS fetch to complete
+    };
 }
 
 // Load reports on page load

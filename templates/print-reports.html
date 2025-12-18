@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monthly Report</title>
+
+<style>
+/* ================= GLOBAL ================= */
+body {
+    font-family: 'Arial', sans-serif;
+    color: #2c3e50;
+    background: #fff;
+    margin: 0;
+    padding: 20px;
+}
+
+/* ================= HEADER ================= */
+header {
+    background: #ffffff;
+    padding: 20px;
+    border-bottom: 4px solid #27ae60;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.logo { height: 70px; }
+.report-title h1 {
+    margin: 0;
+    font-size: 28px;
+    color: #27ae60;
+}
+.report-title span {
+    font-size: 14px;
+    color: #666;
+}
+
+/* ================= SUMMARY CARDS ================= */
+.cards {
+    display: flex;
+    gap: 15px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+.card {
+    flex: 1;
+    min-width: 200px;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #f9f9f9;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    text-align: center;
+}
+.card h3 { margin-bottom: 10px; font-size: 16px; color: #34495e; }
+.card p { font-size: 20px; font-weight: bold; color: #2c3e50; }
+
+/* ================= TABLES ================= */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 25px;
+    font-size: 14px;
+}
+th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+th { background-color: #2c3e50; color: white; font-weight: normal; }
+tbody tr:nth-child(even) { background-color: #f2f2f2; }
+
+/* ================= PRINT BUTTON ================= */
+.print-container { display: flex; justify-content: flex-end; margin: 20px 0; }
+.no-print {
+    padding: 10px 20px;
+    background: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+/* ================= FOOTER ================= */
+footer {
+    width: 100%;
+    background: #2c3e50;
+    color: white;
+    text-align: center;
+    padding: 12px 0;
+    font-size: 13px;
+}
+
+/* ================= PRINT OPTIMIZATION ================= */
+@media print {
+    body {
+        margin: 0;
+        padding: 0;
+        font-size: 12pt;
+    }
+
+    .no-print { display: none; }
+
+    @page {
+        size: A4;
+        margin: 20mm;
+    }
+
+    header, footer, table, h2 {
+        page-break-inside: avoid;
+    }
+
+    /* Cards layout for print: 2 per row */
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr); /* 2 cards per row */
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .card {
+        flex: unset; /* remove flex behavior */
+        min-width: unset;
+    }
+
+    table { page-break-after: auto; width: 100%; }
+    tr { page-break-inside: avoid; }
+    th, td { font-size: 12pt; padding: 6px; }
+
+    footer { position: static; }
+}
+
+</style>
+
+</head>
+<body>
+
+<!-- ================== HEADER ================== -->
+<header>
+    <img src="{{ url_for('static', filename='images/logo/panda-151665_1280.png') }}" class="logo">
+    <div class="report-title">
+        <h1>Monthly Report</h1>
+        <span>Generated: {{ now }}</span>
+    </div>
+</header>
+
+
+
+<!-- ================== SUMMARY CARDS ================== -->
+<div class="cards">
+    <div class="card">
+        <h3>Total Income (This Month)</h3>
+        <p id="total-income">$0.00</p>
+    </div>
+    <div class="card">
+        <h3>Outstanding Payments</h3>
+        <p id="outstanding-tenants">0 Tenants</p>
+    </div>
+    <div class="card">
+        <h3>Active Contracts</h3>
+        <p id="active-contracts">0</p>
+    </div>
+    <div class="card">
+        <h3>Maintenance Costs (This Month)</h3>
+        <p id="maintenance-cost">$0.00</p>
+    </div>
+</div>
+
+<!-- ================== TABLES ================== -->
+<h2>Monthly Income Report</h2>
+<table id="monthly-income-table">
+    <thead>
+        <tr>
+            <th>Month</th>
+            <th>Total Collected</th>
+            <th>Total Expected</th>
+            <th>Difference</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<h2>Outstanding Payments</h2>
+<table id="outstanding-payments-table">
+    <thead>
+        <tr>
+            <th>Tenant</th>
+            <th>Room</th>
+            <th>Month Due</th>
+            <th>Amount</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<h2>Maintenance Cost Summary</h2>
+<table id="maintenance-summary-table">
+    <thead>
+        <tr>
+            <th>Month</th>
+            <th>Total Maintenance Cost</th>
+            <th>Completed Requests</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<!-- ================== FOOTER ================== -->
+<footer>
+    &copy; 2025 Rent Home Management System. All rights reserved.
+</footer>
+
+<script>
+async function fetchReports() {
+    try {
+        // ================== SUMMARY CARDS ==================
+        const summaryResp = await fetch('/api/reports/summary');
+        const summary = summaryResp.ok ? await summaryResp.json() : null;
+
+        if (summary && !summary.error) {
+            document.getElementById('total-income').textContent = `$${(summary.total_income || 0).toFixed(2)}`;
+            document.getElementById('active-contracts').textContent = summary.active_contracts || 0;
+            document.getElementById('outstanding-tenants').textContent = `${summary.outstanding_tenants || 0} Tenants`;
+            document.getElementById('maintenance-cost').textContent = `$${(summary.maintenance_cost || 0).toFixed(2)}`;
+        }
+
+        // ================== MONTHLY INCOME ==================
+        const incomeResp = await fetch('/api/reports/monthly_income');
+        const incomeData = incomeResp.ok ? await incomeResp.json() : [];
+
+        const incomeBody = document.querySelector('#monthly-income-table tbody');
+        incomeBody.innerHTML = '';
+
+        if (incomeData.length === 0) {
+            incomeBody.innerHTML = `<tr><td colspan="4">No Data</td></tr>`;
+        } else {
+            incomeData.forEach(row => {
+                const monthNumber = parseInt(row.month, 10) || 0;
+                const monthName = new Date(2025, monthNumber - 1).toLocaleString('default', { month: 'long' });
+                incomeBody.innerHTML += `<tr>
+                    <td>${monthName}</td>
+                    <td>$${(row.total_collected || 0).toFixed(2)}</td>
+                    <td>$${(row.total_expected || 0).toFixed(2)}</td>
+                    <td>$${(row.difference || 0).toFixed(2)}</td>
+                </tr>`;
+            });
+        }
+
+        // ================== OUTSTANDING PAYMENTS ==================
+        const outResp = await fetch('/api/reports/outstanding_payments');
+        const outData = outResp.ok ? await outResp.json() : [];
+
+        const outBody = document.querySelector('#outstanding-payments-table tbody');
+        outBody.innerHTML = '';
+
+        if (outData.length === 0) {
+            outBody.innerHTML = `<tr><td colspan="4">No Data</td></tr>`;
+        } else {
+            outData.forEach(row => {
+                const monthNumber = parseInt(row.month_due, 10) || 0;
+                const monthName = new Date(2025, monthNumber - 1).toLocaleString('default', { month: 'long' });
+                outBody.innerHTML += `<tr>
+                    <td>${row.tenant || '-'}</td>
+                    <td>${row.room_number || '-'}</td>
+                    <td>${monthName}</td>
+                    <td>$${(row.amount || 0).toFixed(2)}</td>
+                </tr>`;
+            });
+        }
+
+        // ================== MAINTENANCE SUMMARY ==================
+        const maintResp = await fetch('/api/reports/maintenance_summary');
+        const maintData = maintResp.ok ? await maintResp.json() : [];
+
+        const maintBody = document.querySelector('#maintenance-summary-table tbody');
+        maintBody.innerHTML = '';
+
+        if (maintData.length === 0) {
+            maintBody.innerHTML = `<tr><td colspan="3">No Data</td></tr>`;
+        } else {
+            maintData.forEach(row => {
+                const monthNumber = parseInt(row.month, 10) || 0;
+                const monthName = new Date(2025, monthNumber - 1).toLocaleString('default', { month: 'long' });
+                maintBody.innerHTML += `<tr>
+                    <td>${monthName}</td>
+                    <td>$${(row.total_maintenance_cost || 0).toFixed(2)}</td>
+                    <td>${row.completed_requests || 0}</td>
+                </tr>`;
+            });
+        }
+
+    } catch (err) {
+        console.error('Error fetching reports:', err);
+        // Optional: show error message in tables
+        const tables = ['monthly-income-table', 'outstanding-payments-table', 'maintenance-summary-table'];
+        tables.forEach(id => {
+            const tbody = document.querySelector(`#${id} tbody`);
+            if (tbody) tbody.innerHTML = `<tr><td colspan="${tbody.parentElement.querySelectorAll('th').length}">Error loading data</td></tr>`;
+        });
+    }
+}
+
+// Run after DOM is ready
+document.addEventListener('DOMContentLoaded', async () => {
+    await fetchReports(); // load all data first
+
+    // Automatically print after data is loaded
+    window.print();
+});
+
+
+const printBtn = document.getElementById('print-btn');
+printBtn.addEventListener('click', async () => {
+    await fetchReports();  // ensure tables are filled
+    window.print();
+});
+
+
+
+</script>
+
+
+</body>
+</html>
