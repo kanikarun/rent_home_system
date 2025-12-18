@@ -10,14 +10,18 @@
   <div class="login-wrapper">
     <div class="login-box">
       <h1>Rent Home</h1>
-      <form id="loginForm">
-        <input type="text" id="username" placeholder="Username" value="admin" required>
-        <input type="password" id="password" placeholder="Password" value="123" required>
 
-        <div id="errorMsg" class="error-msg"></div>
+      <div class="error-msg" id="errorMsg"
+           style="display: {% if error %}block{% else %}none{% endif %};">
+           {% if error %}{{ error }}{% endif %}
+      </div>
 
+      <form method="POST" action="/login" id="loginForm">
+        <input type="text" name="username" id="username" placeholder="Username" required>
+        <input type="password" name="password" id="password" placeholder="Password" required>
         <button type="submit">Log In</button>
       </form>
+
       <div class="forgot-password"><a href="#">Forgot Password?</a></div>
     </div>
   </div>

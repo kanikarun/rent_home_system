@@ -7,3 +7,6 @@ from routes.rooms import *
 from routes.maintenance import *
 from routes.payments import *
 from routes.reports import *
+from routes.login import *
+from routes.dashboard import *
+from routes.print_payment import *

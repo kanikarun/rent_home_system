@@ -20,6 +20,7 @@
     <a href="/maintenance">Maintenance</a>
     <a href="/reports">Reports</a>
     <a href="/users">Users</a>
+
   </nav>
   <a href="/login" class="logout-btn">Logout</a>
 </aside>
@@ -389,6 +390,21 @@ window.deleteProperty = async id => {
   if(!res.ok) return alert(json.error||json.message);
   loadProperties();
 }
+
+const userRole = "{{ user_role }}"; // Flask will inject the role
+
+// Only show add/edit/delete for Manager/Admin
+if(userRole === "Staff"){
+    document.getElementById("addPropertyBtn").style.display = 'none';
+
+    // Disable edit/delete buttons after loading
+    const observer = new MutationObserver(() => {
+        document.querySelectorAll(".btn-edit, .btn-delete").forEach(btn => btn.style.display='none');
+    });
+    observer.observe(propertyTableBody, { childList:true });
+}
+
+
 
 // --- INITIAL LOAD ---
 loadOwners(); loadTypes(); loadProperties();

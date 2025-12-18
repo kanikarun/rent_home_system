@@ -84,6 +84,8 @@ body {
 }
 
 .topbar .user {
+
+ margin-left: auto;
   font-weight: bold;
   color: #2c3e50;
 }
@@ -298,6 +300,7 @@ body {
   text-decoration: none;
   font-weight: 600;
   transition: 0.2s;
+  height: 45px;
 }
 
 .add-tenant-btn:hover {
@@ -646,4 +649,29 @@ body {
 
 .popup-buttons .btn-cancel:hover {
   background: #791111;
+}
+
+.contract-card .table-scroll {
+    max-height: 280px; /* height of scrollable tbody */
+    overflow-y: auto;
+}
+
+.contract-card .table-scroll table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.contract-card .table-scroll thead {
+    position: sticky;
+    top: 0;
+    background: #34495e;
+    color: white;
+    z-index: 2;
+}
+
+.contract-card .table-scroll th,
+.contract-card .table-scroll td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
 }

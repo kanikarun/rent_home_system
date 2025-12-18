@@ -1,3 +1,5 @@
+import json
+
 from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -13,17 +15,11 @@ import models
 import routes
 
 @app.route("/")
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        # No DB yet, just redirect to users page
-        return redirect(url_for("dashboard"))
+@app.get("/login")
+def login_page():
     return render_template("login.html")
-@app.route("/dashboard")
-def dashboard():
-    return render_template("index.html")
+
+
 @app.route("/properties")
 def properties():
     return render_template("properties.html")
@@ -46,5 +42,6 @@ def reports():
 @app.route("/users")
 def users():
     return render_template("users.html")
+
 if __name__ == "__main__":
     app.run(debug=True)

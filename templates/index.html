@@ -1,96 +1,194 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rent Home Management UI</title>
-
-  <!-- Link static CSS correctly -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rent Home Dashboard</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-
-<!-- ===== SIDEBAR NAVIGATION ===== -->
+  <!-- Sidebar -->
   <aside class="sidebar">
     <div class="logo">RH</div>
     <h2>Rent Home</h2>
-   <nav> <a class="active" href="/dashboard">Dashboard</a>
-       <a href="/properties">Properties</a> <a href="/tenants">Tenants</a>
-       <a href="/contracts">Contracts</a> <a href="/payments">Payments</a>
-       <a href="/maintenance">Maintenance</a> <a href="/reports">Reports</a>
-       <a href="/users">Users</a> </nav>
+    <nav>
+      <a class="active" href="/dashboard">Dashboard</a>
+      <a href="/properties">Properties</a>
+      <a href="/tenants">Tenants</a>
+      <a href="/contracts">Contracts</a>
+      <a href="/payments">Payments</a>
+      <a href="/maintenance">Maintenance</a>
+      <a href="/reports">Reports</a>
+      <a href="/users">Users</a>
+    </nav>
     <a href="/login" class="logout-btn">Logout</a>
   </aside>
 
-  <!-- ========== MAIN AREA ========== -->
+  <!-- Main area -->
   <main class="main">
-
-    <!-- TOP BAR -->
     <header class="topbar">
-      <input type="text" placeholder="Search..." class="search" />
+
       <div class="user">Admin</div>
     </header>
 
-      <!-- DASHBOARD CARDS -->
-      <div class="container">
-          <h1 class="page-header">Dashboard</h1>
-          <section class="cards">
-    <div class="card">
-        <h3>Income</h3>
-        <p>$9,340</p>
+    <div class="container">
+      <h1 class="page-header">Dashboard</h1>
+
+      <!-- Dashboard Cards -->
+      <section class="cards">
+        <div class="card" style="cursor:pointer;" onclick="window.location.href='/payments'">
+          <h3>Income</h3>
+          <p id="income">$0</p>
+        </div>
+        <div class="card" style="cursor:pointer;" onclick="window.location.href='/tenants'">
+          <h3>Tenants</h3>
+          <p id="tenants">0</p>
+        </div>
+        <div class="card" style="cursor:pointer;" onclick="window.location.href='/properties'">
+          <h3>Owners</h3>
+          <p id="owners">0</p>
+        </div>
+
+        <div class="card" style="cursor:pointer;" onclick="window.location.href='/maintenance'">
+          <h3>Maintenance</h3>
+          <p id="maintenance">0 Open</p>
+        </div>
+      </section>
+
+    <section class="table-section" style="display: flex; gap: 20px; margin-top: 20px;">
+        <div class="card" style="flex: 1; max-width: 350px;">
+            <canvas id="dashboardPie"></canvas>
+        </div>
+       <!-- Contract Table Card -->
+    <div class="card contract-card" style="flex:1; cursor:pointer;"
+         onclick="window.location.href='/contracts'">
+        <h3>Contracts</h3>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tenant</th>
+                        <th>Property</th>
+                        <th>Room</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="contractsTable"></tbody>
+            </table>
+        </div>
     </div>
 
-    <div class="card">
-        <h3>Tenants</h3>
-        <p>3</p>
-    </div>
 
-    <div class="card">
-        <h3>Owners</h3>
-        <p>3</p>
-    </div>
 
-    <div class="card">
-        <h3>Maintenance</h3>
-        <p>4 Open</p>
-    </div>
-</section>
-           <!-- EXAMPLE TABLE -->
-          <section class="table-section">
-      <h2>Properties</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Owner</th>
-            <th>Address</th>
-            <th>Type</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Rose Apartment</td>
-            <td>John Doe</td>
-            <td>Phnom Penh</td>
-            <td>Apartment</td>
-          </tr>
-        </tbody>
-      </table>
+
     </section>
-      </div>
 
-
+      <!-- Properties Table -->
+      <section class="table-section" style="cursor:pointer;" onclick="window.location.href='/properties'">
+        <h2>Properties</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Owner</th>
+              <th>Address</th>
+              <th>Type</th>
+            </tr>
+          </thead>
+          <tbody id="propertiesTable">
+            <!-- Dynamically filled -->
+          </tbody>
+        </table>
+      </section>
+    </div>
   </main>
 
+  <!-- Script -->
 
+<script>
+ async function loadDashboard() {
+    const res = await fetch('/api/dashboard');
+    const data = await res.json();
+
+    // Update cards
+    document.getElementById('income').textContent = `$${data.income.toFixed(2)}`;
+    document.getElementById('tenants').textContent = data.tenants;
+    document.getElementById('owners').textContent = data.owners;
+
+    // Maintenance card: pending vs completed with colors
+    const maintenanceCard = document.getElementById('maintenance');
+    maintenanceCard.innerHTML = `
+        <span style="color:#ef4444;">${data.maintenance_pending} Pending</span> /
+        <span style="color:#10b981;">${data.maintenance_completed} Completed</span>
+    `;
+
+    // Fill properties table
+    const tbody = document.getElementById('propertiesTable');
+    tbody.innerHTML = '';
+    data.properties.forEach(prop => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${prop.name}</td>
+                <td>${prop.owner}</td>
+                <td>${prop.address}</td>
+                <td>${prop.type}</td>
+            </tr>
+        `;
+    });
+
+// Fill contracts table
+const tbodyContracts = document.getElementById('contractsTable');
+tbodyContracts.innerHTML = '';
+data.contracts_table.forEach(c => {
+    let statusColor = c.status === 'Available' ? '#10b981' : '#ef4444';
+    tbodyContracts.innerHTML += `
+        <tr>
+            <td>${c.id}</td>
+            <td>${c.tenant}</td>
+            <td>${c.property}</td>
+            <td>${c.room}</td>
+            <td style="color:${statusColor}; font-weight:bold;">${c.status}</td>
+        </tr>
+    `;
+});
+
+
+    // Pie chart for dashboard overview including maintenance
+    const ctx = document.getElementById('dashboardPie').getContext('2d');
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Tenants', 'Owners', 'Properties', 'Maintenance Pending', 'Maintenance Completed'],
+            datasets: [{
+                label: 'Dashboard Overview',
+                data: [
+                    data.tenants,
+                    data.owners,
+                    data.properties.length,
+                    data.maintenance_pending,
+                    data.maintenance_completed
+                ],
+                backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#10b981'],
+                borderColor: '#ffffff',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 1,
+            plugins: {
+                legend: { position: 'bottom' },
+                title: { display: true, text: 'Dashboard Summary' }
+            }
+        }
+    });
+}
+
+loadDashboard();
+
+</script>
 </body>
 </html>
-
-<!--
-Create the following files next to this HTML:
-
-style.css
-script.js
-
-I can generate them for you — just tell me.
--->

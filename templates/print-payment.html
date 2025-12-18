@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice - Payments</title>
+
+<style>
+/* ================= GLOBAL ================= */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f9;
+  color: #2c3e50;
+}
+
+/* ================= HEADER ================= */
+header {
+  background: #ffffff;
+  padding: 30px;
+  border-bottom: 4px solid #27ae60;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  height: 70px;
+}
+
+.invoice-title {
+  text-align: right;
+}
+
+.invoice-title h1 {
+  margin: 0;
+  color: #27ae60;
+  font-size: 36px;
+}
+
+.invoice-title span {
+  font-size: 14px;
+  color: #666;
+}
+
+/* ================= MAIN ================= */
+main {
+  padding: 30px;
+}
+
+/* ================= INFO ================= */
+.invoice-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 25px;
+}
+
+.info-box {
+  background: #ffffff;
+  padding: 18px;
+  border-radius: 8px;
+  width: 48%;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.info-box h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #27ae60;
+  font-size: 16px;
+}
+
+.info-box p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+/* ================= TABLE ================= */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+thead th {
+  background: #2c3e50;
+  color: white;
+  padding: 12px;
+  font-size: 14px;
+  border-right: 1px solid #ddd; /* Split line */
+}
+
+thead th:last-child {
+  border-right: none; /* No border on last column */
+}
+
+tbody td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+  border-right: 1px solid #ddd; /* Split line */
+}
+
+tbody td:last-child {
+  border-right: none; /* No border on last column */
+}
+
+tbody tr:nth-child(even) {
+  background: #f9fbfd;
+}
+
+
+/* ================= TOTALS ================= */
+.totals {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.totals table {
+  width: 350px;
+  border: none;
+}
+
+.totals td {
+  padding: 10px;
+  font-size: 15px;
+}
+
+.totals tr td:first-child {
+  text-align: left;
+}
+
+.totals tr:last-child td {
+  font-size: 18px;
+  font-weight: bold;
+  background: #27ae60;
+  color: white;
+}
+
+/* ================= FOOTER ================= */
+footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background: #2c3e50;
+  color: white;
+  text-align: center;
+  padding: 12px 0;
+  font-size: 13px;
+}
+
+/* ================= PRINT ================= */
+@media print {
+  header {
+    padding: 10px 15px; /* reduce padding */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .logo {
+    height: 40px; /* shrink logo */
+  }
+
+  .invoice-title h1 {
+    font-size: 24px; /* smaller title */
+  }
+
+  .invoice-title span {
+    font-size: 10px; /* smaller date */
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- ================= HEADER ================= -->
+<header>
+  <img src="{{ url_for('static', filename='images/logo/panda-151665_1280.png') }}" class="logo">
+  <div class="invoice-title">
+    <h1>INVOICE</h1>
+    <span>Generated: {{ now }}</span>
+  </div>
+</header>
+
+<!-- ================= MAIN ================= -->
+<main>
+{% set tenants = [] %}
+{% for row in payments %}
+  {% if row[1] not in tenants %}
+    {% set _ = tenants.append(row[1]) %}
+  {% endif %}
+{% endfor %}
+
+  <!-- ================= INFO ================= -->
+<div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+  <!-- BILL TO -->
+  <div style="flex:1; padding:15px; border:1px solid #ccc; border-radius:8px; background:#f0f8f5; margin-right:10px;">
+    <h3>Billed To:</h3>
+    <p><strong>Name:</strong> {{ bill_to_name }}</p>
+    <p><strong>Type:</strong> {{ bill_to_type }}</p>
+    <p><strong>Room(s):</strong> {{ bill_to_rooms }}</p>
+  </div>
+
+  <!-- INVOICE INFO -->
+  <div style="flex:1; padding:15px; border:1px solid #ccc; border-radius:8px; background:#f0f8f5; margin-left:10px;">
+    <h3>Invoice Info:</h3>
+    <p><strong>Invoice #:</strong> {{ invoice_number }}</p>
+    <p><strong>Date:</strong> {{ now }}</p>
+    <p><strong>Due Date:</strong> {{ due_date }}</p>
+  </div>
+</div>
+
+
+
+  <!-- ================= TABLE ================= -->
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Month</th>
+        <th>Payment Date</th>
+        <th>Amount</th>
+        <th>Total Paid</th>
+        <th>Remaining</th>
+        <th>Method</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for row in payments %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ row[3] }}</td>
+        <td>{{ row[4] }}</td>
+        <td class="money paid">${{ "%.2f"|format(row[5]|float) }}</td>
+        <td class="money paid">${{ "%.2f"|format(row[6]|float) }}</td>
+        <td class="money remaining">${{ "%.2f"|format(row[7]|float) }}</td>
+        <td>{{ row[8] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- ================= TOTALS ================= -->
+  <div class="totals">
+    <table>
+      <tr>
+        <td>Total Amount</td>
+        <td>${{ "%.2f"|format(payments | sum(attribute=5)|float) }}</td>
+      </tr>
+      <tr>
+        <td>Total Paid</td>
+        <td>${{ "%.2f"|format(payments | sum(attribute=6)|float) }}</td>
+      </tr>
+      <tr>
+        <td>Balance Due</td>
+        <td>${{ "%.2f"|format(payments | sum(attribute=7)|float) }}</td>
+      </tr>
+    </table>
+  </div>
+
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+  © {{ now[:4] }} Rent Home System • Official Invoice
+</footer>
+
+<script>
+  window.print();
+</script>
+
+</body>
+</html>

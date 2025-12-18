@@ -20,6 +20,7 @@
     <a href="/maintenance">Maintenance</a>
     <a href="/reports">Reports</a>
     <a href="/users">Users</a>
+
   </nav>
   <a href="/login" class="logout-btn">Logout</a>
 </aside>
@@ -29,34 +30,41 @@
     <input type="text" placeholder="Search payment..." id="searchInput" class="search"/>
     <div class="user">Admin</div>
   </header>
+    <div class="container">
+<div class="page-header">
+  <h1>Payments</h1>
+  <div>
+    <button id="addPaymentBtn" class="add-tenant-btn">Add Payment</button>
+    <button id="printSelectedBtn" class="add-tenant-btn">Print🖨️</button>
+  </div>
+</div>
 
-  <div class="container">
-    <div class="page-header">
-      <h1>Payments</h1>
-      <button id="addPaymentBtn" class="add-tenant-btn">Add Payment</button>
-    </div>
 
-    <div class="table-section">
-      <h2>All Payments</h2>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Tenant</th>
-            <th>Room</th>
-            <th>Month</th>
-            <th>Payment Date</th>
-            <th>Amount</th>
-            <th>Total Paid</th>
-            <th>Remaining</th>
-            <th>Method</th>
-            <th>Remarks</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="paymentTableBody"></tbody>
-      </table>
-    </div>
+
+  <div class="table-section">
+  <h2>All Payments</h2>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th><input type="checkbox" id="selectAll"></th>
+        <th>ID</th>
+        <th>Tenant</th>
+        <th>Room</th>
+        <th>Month</th>
+        <th>Payment Date</th>
+        <th>Amount</th>
+        <th>Total Paid</th>
+        <th>Remaining</th>
+        <th>Method</th>
+        <th>Remarks</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="paymentTableBody"></tbody>
+  </table>
+</div>
+
   </div>
 </main>
 
@@ -232,6 +240,7 @@ async function loadPayments() {
     const tr = document.createElement('tr');
     tr.setAttribute('style', highlightStyle);
     tr.innerHTML = `
+      <td><input type="checkbox" class="row-select"></td>
       <td>${p.payment_id}</td>
       <td>${p.tenant || ''}${(contractStatus === 'unavailable' && remaining > 0) ? ' ⚠️' : ''}</td>
       <td>${p.room_number || ''}</td>
@@ -247,10 +256,50 @@ async function loadPayments() {
         <button class="btn-delete">Delete</button>
       </td>
     `;
+
     attachRowEvents(tr, p.payment_id);
     paymentTableBody.appendChild(tr);
   });
 }
+// SELECT ALL CHECKBOX
+const selectAllCheckbox = document.getElementById('selectAll');
+selectAllCheckbox.addEventListener('change', () => {
+  document.querySelectorAll('.row-select').forEach(cb => cb.checked = selectAllCheckbox.checked);
+});
+
+// PRINT SELECTED PAYMENTS
+const printSelectedBtn = document.getElementById('printSelectedBtn');
+printSelectedBtn.addEventListener('click', () => {
+  const selectedPayments = [];
+  document.querySelectorAll('.row-select:checked').forEach(cb => {
+    const tr = cb.closest('tr');
+    const rowData = Array.from(tr.querySelectorAll('td:not(:first-child):not(:last-child)')).map(td => td.textContent);
+    selectedPayments.push(rowData);
+  });
+
+  if(selectedPayments.length === 0){
+    alert('Please select payments to print.');
+    return;
+  }
+
+  // Create a form to POST dynamically
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/print-payments';
+  form.target = '_blank';
+
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'payments';
+  input.value = JSON.stringify(selectedPayments);
+
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+});
+
+
 
 
 
