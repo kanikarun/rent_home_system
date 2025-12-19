@@ -3,8 +3,6 @@ from werkzeug.security import check_password_hash
 from models import Users
 from app import app
 
-app.secret_key = "super-secret-key"
-
 
 @app.post("/login")
 def login_action():
@@ -23,25 +21,10 @@ def login_action():
         return jsonify({"success": False, "error": "Incorrect password"})
 
     # Save session
+
     session["user_id"] = user.user_id
     session["username"] = user.username
     session["role"] = user.role
 
     return jsonify({"success": True})
-@app.get("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("login_page"))
-from functools import wraps
 
-def login_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if "user_id" not in session:
-            return redirect(url_for("login_page"))
-        return f(*args, **kwargs)
-    return wrapper
-@app.get("/dashboard")
-@login_required
-def dashboard():
-    return render_template("index.html")
